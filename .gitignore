@@ -1,0 +1,12 @@
+# Personal data: never commit
+profile.md
+applications.csv
+*.pdf
+*.doc
+*.docx
+postings/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
