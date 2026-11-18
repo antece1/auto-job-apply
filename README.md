@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/github/v/release/antece1/auto-job-apply?label=version)](https://github.com/antece1/auto-job-apply/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Auto-apply to jobs with your AI agent.** An auto-apply skill for AI agent platforms that fills out job applications for you in your own Chrome, working alongside **Simplify**, **LinkedIn**, **Handshake** and **Sign in with Google**.
+**Auto-apply to jobs with your AI agent.** An auto-apply skill for AI agent platforms that fills out job applications for you in your own **Google Chrome** through the agent's **Chrome extension**, working alongside **Simplify**, **LinkedIn** and **Handshake**.
 
 Paste job links, and the agent checks each job against your rules, fills the whole application from your profile, attaches your resume, and submits when you say so.
 
@@ -15,10 +15,10 @@ Paste job links, and the agent checks each job against your rules, fills the who
 | | How |
 |---|---|
 | **AI agent platforms** | Installs as an agent skill (`SKILL.md`) on AI agents that support skills and can control Chrome through a browser extension |
+| **Google Chrome + Chrome extension** | The agent works in your real Chrome through its Chrome extension, so your job-site logins, Simplify and your resume file are all there. Optional: it can click **Sign in with Google** on job sites with the account you choose. It never types passwords or codes |
 | **Simplify** | Runs Simplify Copilot's **Autofill** first, then fills everything it missed and fixes anything it got wrong |
 | **LinkedIn** | Paste LinkedIn job links. The agent follows **Apply** to the employer's form, and puts your LinkedIn profile on every application |
 | **Handshake** | Paste Handshake job links. The agent follows **Apply** or **Apply externally** and fills the form |
-| **Google** | Optional: lets the agent click **Sign in with Google** with the account you choose. It never types passwords or codes |
 | **Company application sites** | Greenhouse, Lever, Ashby, Workday, iCIMS, BambooHR, SuccessFactors and other applicant tracking systems |
 
 ## What it does

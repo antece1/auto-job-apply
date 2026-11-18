@@ -5,7 +5,9 @@ Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
 ## [Unreleased]
 
-(Changes waiting for the next release go here.)
+### Changed
+
+- README: the intro and "Works with" table now lead with Google Chrome and the agent's Chrome extension. Sign in with Google is listed as an optional part of the Chrome row.
 
 ## [1.0.0] - 2026-11-18
 
