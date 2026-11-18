@@ -1,0 +1,31 @@
+# Changelog
+
+All notable changes to auto-job-apply are listed here.
+Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH.
+
+## [Unreleased]
+
+(Changes waiting for the next release go here.)
+
+## [1.0.0] - 2026-11-18
+
+First public release.
+
+### Added
+
+- `SKILL.md`: applies to jobs in your own Chrome through the agent's Chrome browser extension.
+  - Fit check against your own rules (years required, title level, citizenship or clearance, degree, posting age, repeat employers).
+  - Runs Simplify Copilot's Autofill first when it's installed, then fills everything it missed.
+  - Follows LinkedIn and Handshake job links through **Apply** or **Apply externally** to the employer's form.
+  - Optional **Sign in with Google** with the account you choose. Never types passwords or codes.
+  - Attaches your resume and checks that it stuck.
+  - Submits only when you say "submit" in that request.
+  - Logs every attempt to `applications.csv`.
+- First-run profile setup: copies `profile.example.md` to `profile.md` and asks for your details.
+- "Learned answers": a question the profile doesn't cover is asked once and saved.
+- Helper scripts: `scan-form.js`, `fill-form.js` and `check-form.js`, which also handle React-controlled inputs.
+- `templates/JD.md` for optional saved posting notes.
+- README with an example screenshot (demo data).
+
+[Unreleased]: https://github.com/antece1/auto-job-apply/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/antece1/auto-job-apply/releases/tag/v1.0.0

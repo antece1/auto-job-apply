@@ -1,5 +1,7 @@
 # auto-job-apply
 
+[![Version](https://img.shields.io/github/v/release/antece1/auto-job-apply?label=version)](https://github.com/antece1/auto-job-apply/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Auto-apply to jobs with your AI agent.** An auto-apply skill for AI agent platforms that fills out job applications for you in your own Chrome, working alongside **Simplify**, **LinkedIn**, **Handshake** and **Sign in with Google**.
 
 Paste job links, and the agent checks each job against your rules, fills the whole application from your profile, attaches your resume, and submits when you say so.
@@ -56,6 +58,18 @@ git clone https://github.com/antece1/auto-job-apply
 
 Move the `auto-job-apply` folder into your agent's skills folder, then restart the agent so it picks up the skill.
 
+To get a newer version later, run `git pull` in that folder. Your `profile.md` and `applications.csv` stay as they are.
+
+## Versions
+
+Releases use [semantic versioning](https://semver.org): **MAJOR.MINOR.PATCH**.
+
+- **Patch** (1.0.0 → 1.0.1): bug fixes.
+- **Minor** (1.0.0 → 1.1.0): new features that keep working with your existing `profile.md`.
+- **Major** (1.x → 2.0.0): changes that need you to update your `profile.md` or how you run the skill.
+
+The installed version is in `SKILL.md` (`version:`). See [CHANGELOG.md](CHANGELOG.md) for what changed in each release, and [Releases](https://github.com/antece1/auto-job-apply/releases) for downloads.
+
 ## Set up your profile
 
 Run:
@@ -88,7 +102,8 @@ At the end you get a summary table (company, role, status, anything left for you
 
 | File | What it is |
 |---|---|
-| `SKILL.md` | The instructions the agent follows |
+| `SKILL.md` | The instructions the agent follows (and the version number) |
+| `CHANGELOG.md` | What changed in each version |
 | `scan-form.js` | Lists every visible form field with its question text and tags it for filling |
 | `fill-form.js` | Fills text, textarea and select fields, including React-controlled inputs |
 | `check-form.js` | Reads every tagged field back, including the attached file name |

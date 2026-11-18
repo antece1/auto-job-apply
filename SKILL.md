@@ -1,6 +1,8 @@
 ---
 name: auto-job-apply
 description: Apply to jobs in the user's own Chrome through the agent's Chrome browser extension - open each application link, check the job against the user's fit rules, run Simplify's Autofill if installed, fill every remaining field from profile.md, attach the resume, submit only when the user's request for this run says to submit, and log the result to applications.csv. Use when the user gives one or more job or application URLs and asks to apply, autofill, fill out, or submit an application, or asks to set up their job-apply profile.
+metadata:
+  version: "1.0.0"
 ---
 
 # Auto job apply
