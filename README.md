@@ -4,6 +4,10 @@
 
 Paste job links, and the agent checks each job against your rules, fills the whole application from your profile, attaches your resume, and submits when you say so.
 
+![Example run: the agent fills a job application from the profile, tags where each answer came from, and stops before Submit](docs/screenshot.png)
+
+*Example run with demo data. Each field is tagged with where its answer came from (Simplify, your profile, the salary rule, or written by the agent), and the agent stops before Submit until you say "submit".*
+
 ## Works with
 
 | | How |
