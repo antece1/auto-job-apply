@@ -5,6 +5,10 @@ Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
 ## [Unreleased]
 
+(Changes waiting for the next release go here.)
+
+## [1.0.1] - 2026-11-18
+
 ### Changed
 
 - README: the intro and "Works with" table now lead with Google Chrome and the agent's Chrome extension. Sign in with Google is listed as an optional part of the Chrome row.
@@ -29,5 +33,6 @@ First public release.
 - `templates/JD.md` for optional saved posting notes.
 - README with an example screenshot (demo data).
 
-[Unreleased]: https://github.com/antece1/auto-job-apply/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/antece1/auto-job-apply/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/antece1/auto-job-apply/releases/tag/v1.0.1
 [1.0.0]: https://github.com/antece1/auto-job-apply/releases/tag/v1.0.0
