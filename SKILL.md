@@ -28,7 +28,7 @@ If `profile.md` doesn't exist yet, set it up before applying to anything:
 
 ## For each URL, one at a time
 
-1. **Open.** Navigate this session's tab to the URL. If it lands on a job description, click its Apply button to reach the form. Read the posting (`get_page_text`) for company, title, location, pay range, posted date and requirements.
+1. **Open.** Navigate this session's tab to the URL. If it lands on a job description, click its Apply button to reach the form. If the link is a job-board page (LinkedIn, Handshake, Simplify, Indeed or similar), click its Apply or Apply externally button and continue on the form it opens; if the board wants the user to sign in, use Sign in with Google only when `profile.md` allows it, otherwise hand over. Read the posting (`get_page_text`) for company, title, location, pay range, posted date and requirements.
    - **Fit check** (before filling anything). Apply the rules under "Fit check" in `profile.md`. If the profile has none, use these defaults and skip the job when any holds:
      - More years of experience are **required** than the profile's maximum ("preferred" is fine).
      - The job requires a citizenship, clearance or work authorization the profile says the applicant doesn't have.
