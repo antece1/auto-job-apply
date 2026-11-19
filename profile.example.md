@@ -76,6 +76,8 @@ Items marked ASK aren't known yet: the agent asks you the first time a form need
 - Unknown questions: ask (the agent collects questions the profile doesn't answer and asks you all at once). Change to "pick" to let the agent choose a sensible answer itself and list it in the summary; it still never invents skills or experience.
 - Sign in with Google: No. Change to "Yes, account: you@example.com" to let the agent click "Sign in with Google" and pick that account. The agent never types a password or verification code.
 - Postings folder: none. Set a folder path to have the agent save a JD.md summary of every posting it applies to.
+- Job Tracker: No. Change to "Yes" to have the agent add or update a row in the Job Tracker (`tracker/`) after every application.
+- Role families for the tracker (optional): the agent tags each job with the first that fits: `engineering`, `software`, `test`, `manufacturing`, `research`, `operations`, `customer`, `other`.
 
 ## Learned answers
 

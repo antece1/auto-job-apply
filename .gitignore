@@ -5,6 +5,12 @@ applications.csv
 *.doc
 *.docx
 postings/
+tracker/tracker-data.json
+tracker/tracker-data.lock
+tracker/tracker-server.log*
+tracker/~$*.tmp
+tracker/backups/
+__pycache__/
 
 # OS / editor
 .DS_Store

@@ -32,7 +32,36 @@ For each job link:
 5. Attaches the right resume and checks that it stuck.
 6. Shows you a table of every answer it entered.
 7. Clicks **Submit** only if you said "submit" in that request. Otherwise it stops so you can review.
-8. Logs each attempt to `applications.csv`.
+8. Logs each attempt to `applications.csv`, and (optional) updates your **Job Tracker** page.
+
+## Job Tracker (optional)
+
+A small web page that runs on your own computer and shows every job in one place: to apply, applied, error and skipped, the responses you got after applying, a funnel by role family, and your interviews (to-do list, calendar and table). The agent adds and updates rows after each application; you can edit them on the page too.
+
+![Job Tracker with demo data: jobs grouped into to apply, applied, error and skipped](docs/tracker.png)
+
+It needs only Python 3, with no extra packages. Start it:
+
+```
+python tracker/tracker.py start --open
+```
+
+(On Windows you can double-click `tracker/start-tracker.cmd` instead. On macOS and Linux use `python3`.) Then open http://localhost:8787. To have the agent keep it up to date, set `Job Tracker: Yes` in your `profile.md`.
+
+| Command | What it does |
+|---|---|
+| `python tracker/tracker.py start [--open] [--port 8787]` | Starts the server in the background |
+| `python tracker/tracker.py stop` / `status` | Stops it / shows whether it's running and where |
+| `python tracker/tracker.py find Acme "Test Technician"` | Finds rows by company, role, location or link |
+| `python tracker/tracker.py list [--status todo] [--json]` | Lists rows |
+| `python tracker/tracker.py get ID` | Shows one row |
+| `python tracker/tracker.py update ID --set key=value [--if-version N]` | Changes a row (`--if-version` refuses if someone else changed it first) |
+| `python tracker/tracker.py add --set company="Acme" --set role="Test Technician"` | Adds a row |
+| `python tracker/tracker.py delete ID` | Deletes a row |
+
+- Your rows are saved in `tracker/tracker-data.json` (with daily copies in `tracker/backups/`). Both are in `.gitignore`.
+- By default only your computer can open the page. `start --lan` lets a phone on the same Wi-Fi open it too, but then anyone on that network can edit it.
+- Role families (`engineering`, `software`, `test`, `manufacturing`, `research`, `operations`, `customer`, `other`) are one list, `TRACKS`, near the top of the script in `tracker/tracker.html`. Edit it to fit your field.
 
 ## Safety
 
@@ -109,11 +138,12 @@ At the end you get a summary table (company, role, status, anything left for you
 | `check-form.js` | Reads every tagged field back, including the attached file name |
 | `profile.example.md` | Template for your `profile.md` |
 | `templates/JD.md` | Template for saved posting notes (optional, set a "Postings folder" in your profile) |
-| `profile.md`, `applications.csv` | **Your** data, created on first run. Ignored by git, so never committed. |
+| `tracker/` | The optional Job Tracker: `tracker.py` (server and row tool), `tracker.html` (the page), `tracker-local-db.js`, `start-tracker.cmd`, `stop-tracker.cmd` |
+| `profile.md`, `applications.csv`, `tracker/tracker-data.json` | **Your** data, created on first run. Ignored by git, so never committed. |
 
 ## Privacy
 
-Your `profile.md`, `applications.csv` and any resume files are listed in `.gitignore`. Running `git pull` to update the skill never touches them. Don't publish them.
+Your `profile.md`, `applications.csv`, tracker data and any resume files are listed in `.gitignore`. Running `git pull` to update the skill never touches them. Don't publish them.
 
 ## Tips
 

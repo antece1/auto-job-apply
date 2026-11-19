@@ -1,0 +1,1762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Job Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='5' fill='%231F5FBF'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root { color-scheme: light; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; padding: 0; }
+img { max-width: 100%; }
+[hidden]:not([hidden=until-found i]) { display: none !important; }
+/* Layout: a test-traveler sheet. Header + status strip, then one table per status; Issues pinned to the right edge. A second view holds interview invites. */
+:root {
+  --paper: #F3F5F6; --surface: #FFFFFF; --ink: #17202A; --muted: #5A6774; --rule: #DAE0E5; --rule-strong: #BCC6CF;
+  --accent: #1F5FBF; --accent-ink: #FFFFFF;
+  --todo: #1F5FBF; --todo-bg: #E7EEFA;
+  --ok: #1B7A4B; --ok-bg: #E2F2E9;
+  --err: #B3261E; --err-bg: #FBE7E5;
+  --warn: #835600; --warn-bg: #FFF3D9;
+  --mail: #FBFCFD;
+  --focus: #1F5FBF;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0E1317; --surface: #151C22; --ink: #E5EAEE; --muted: #93A0AC; --rule: #26303A; --rule-strong: #374451;
+  --accent: #74A3F2; --accent-ink: #0E1317;
+  --todo: #86AEF3; --todo-bg: #16233A; --ok: #5FCB92; --ok-bg: #11301F; --err: #F28A82; --err-bg: #3A1614;
+  --warn: #E8B54E; --warn-bg: #33280D; --mail: #121920; --focus: #86AEF3; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0E1317; --surface: #151C22; --ink: #E5EAEE; --muted: #93A0AC; --rule: #26303A; --rule-strong: #374451;
+  --accent: #74A3F2; --accent-ink: #0E1317;
+  --todo: #86AEF3; --todo-bg: #16233A; --ok: #5FCB92; --ok-bg: #11301F; --err: #F28A82; --err-bg: #3A1614;
+  --warn: #E8B54E; --warn-bg: #33280D; --mail: #121920; --focus: #86AEF3; color-scheme: dark; }
+
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 24px; }
+.view { display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { font-family: var(--f-display); font-weight: 600; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 70ch; }
+.spec { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.spec b { color: var(--ink); font-weight: 500; }
+
+/* Page tabs: Applications | Interviews */
+.views { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--rule-strong); }
+.vtab { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; margin-bottom: -1px; text-decoration: none; color: var(--muted);
+  font-weight: 600; font-size: 15px; border-bottom: 3px solid transparent; }
+.vtab:hover { color: var(--ink); }
+.vtab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.vtab .cnt { font-family: var(--f-mono); font-size: 12px; font-weight: 500; border-radius: 999px; padding: 0 7px; background: var(--ok-bg); color: var(--ok); }
+.vtab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; }
+.tile { appearance: none; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 6px;
+  padding: 10px 12px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px; font: inherit; }
+.tile:hover { border-color: var(--rule-strong); }
+.tile[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tile .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.tile .n { font-family: var(--f-mono); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.todo { background: var(--todo); } .dot.applied { background: var(--ok); } .dot.error { background: var(--err); }
+@media (max-width: 560px) { .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.note { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 14px 16px; color: var(--muted); }
+.note.alert { border-color: var(--err); color: var(--err); background: var(--err-bg); }
+
+section.group { display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 64px; }
+/* Quick-jump bookmarks: stay at the top of the Applications tab while scrolling */
+nav.jump { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  padding: 8px 0; background: var(--paper); border-bottom: 1px solid var(--rule); }
+nav.jump .jl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-right: 2px; }
+nav.jump a { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule-strong); border-radius: 999px;
+  background: var(--surface); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; }
+nav.jump a:hover { border-color: var(--ink); }
+nav.jump a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+nav.jump a .jc { font-family: var(--f-mono); font-weight: 500; font-size: 12px; color: var(--muted); }
+.ghead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; border-top: 2px solid var(--rule-strong); padding-top: 10px; }
+.ghead h2 { font-family: var(--f-display); font-weight: 600; font-size: 20px; margin: 0; display: flex; align-items: center; gap: 8px; }
+.ghead .count { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.ghead p { margin: 0; color: var(--muted); flex-basis: 100%; }
+section.group.todo .ghead { border-top-color: var(--todo); }
+section.group.applied .ghead { border-top-color: var(--ok); }
+section.group.error .ghead { border-top-color: var(--err); }
+
+.scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); min-width: 0; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1060px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--rule); }
+tbody tr:last-child td { border-bottom: none; }
+th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--surface); white-space: nowrap; }
+td.mono, .mono { font-family: var(--f-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+td.job { min-width: 230px; }
+.company { font-weight: 600; }
+.role a { color: var(--accent); text-decoration: none; }
+.role a:hover { text-decoration: underline; }
+.src { display: inline-block; margin-top: 4px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.star { color: var(--warn); font-weight: 600; }
+td.notes { color: var(--muted); max-width: 260px; }
+.empty-row td { color: var(--muted); font-style: italic; }
+a.prep-link { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--ok); }
+
+/* Issues stays at the right edge, even while the table scrolls sideways */
+th.issue, td.issue { position: sticky; right: 0; width: 250px; min-width: 250px; background: var(--surface);
+  border-left: 1px solid var(--rule-strong); box-shadow: -6px 0 8px -8px rgba(0,0,0,.35); }
+td.issue textarea { width: 100%; min-height: 40px; resize: vertical; box-sizing: border-box; font: inherit; font-size: 13px; line-height: 1.4;
+  color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 5px 7px; }
+td.issue textarea:hover { border-color: var(--rule); }
+td.issue textarea:focus { outline: none; border-color: var(--focus); background: var(--paper); }
+td.issue.has textarea { background: var(--warn-bg); color: var(--warn); }
+tr.error td.issue.has textarea { background: var(--err-bg); color: var(--err); }
+td.issue textarea:disabled { cursor: default; }
+
+select.status { font: inherit; font-size: 12.5px; font-weight: 600; border-radius: 999px; padding: 4px 8px; border: 1px solid transparent; cursor: pointer; }
+select.status.todo { background: var(--todo-bg); color: var(--todo); }
+select.status.applied { background: var(--ok-bg); color: var(--ok); }
+select.status.error { background: var(--err-bg); color: var(--err); }
+select.status:focus-visible, .tile:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rm { appearance: none; border: none; background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 6px 0 0; display: block; }
+.rm:hover { color: var(--err); }
+.rm.arm { color: var(--err); font-weight: 600; }
+
+/* After applying: a second tracker below the first, grouped by what the employer has done */
+.after { display: flex; flex-direction: column; gap: 12px; padding-top: 20px; border-top: 3px double var(--rule-strong); scroll-margin-top: 56px; }
+.after h2 { font-family: var(--f-display); font-weight: 600; font-size: 24px; margin: 0; text-wrap: balance; }
+.after > p { margin: 0; color: var(--muted); max-width: 70ch; }
+.dot.interview { background: var(--ok); } .dot.review { background: var(--todo); } .dot.received { background: transparent; box-shadow: inset 0 0 0 2px var(--todo); }
+.dot.rejected { background: var(--err); } .dot.none { background: var(--rule-strong); }
+.dot.offer { background: var(--warn); } .dot.screen { background: transparent; box-shadow: inset 0 0 0 2px var(--ok); }
+.dot.skipped { background: transparent; box-shadow: inset 0 0 0 2px var(--muted); }
+section.group.skipped .ghead { border-top-color: var(--muted); }
+select.status.skipped { background: var(--paper); color: var(--muted); border-color: var(--rule-strong); }
+select.status.offer { background: var(--warn-bg); color: var(--warn); }
+select.status.screen { background: var(--surface); color: var(--ok); border-color: var(--ok); }
+select.status.interview { background: var(--ok-bg); color: var(--ok); }
+select.status.review { background: var(--todo-bg); color: var(--todo); }
+select.status.received { background: var(--surface); color: var(--todo); border-color: var(--todo); }
+select.status.rejected { background: var(--err-bg); color: var(--err); }
+select.status.none { background: var(--paper); color: var(--muted); border-color: var(--rule-strong); }
+table.narrow { min-width: 860px; }
+td.wait.long { color: var(--warn); font-weight: 600; }
+td.issue.note.has textarea { background: var(--paper); color: var(--ink); }
+tr.resp-interview td.issue.note.has textarea { background: var(--ok-bg); color: var(--ok); }
+tr.resp-rejected td.job, tr.resp-rejected td.mono { color: var(--muted); }
+select.track { display: block; margin-top: 4px; max-width: 100%; font-family: var(--f-mono); font-size: 11px; color: var(--muted);
+  background: transparent; border: 1px solid var(--rule); border-radius: 4px; padding: 1px 4px; cursor: pointer; }
+select.track.auto { border-style: dashed; }
+select.track:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.trk { display: block; margin-top: 4px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+#funnelHost { display: flex; flex-direction: column; gap: 10px; }
+.funnel table { min-width: 760px; }
+.funnel td.num, .funnel th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.funnel td.rate.some { color: var(--ok); font-weight: 600; } .funnel td.rate.zero { color: var(--err); font-weight: 600; }
+.repeat { margin: 0; color: var(--warn); max-width: 90ch; }
+
+form.add { border: 1px dashed var(--rule-strong); border-radius: 6px; padding: 14px; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); align-items: end; background: var(--surface); }
+form.add h3 { grid-column: 1 / -1; margin: 0; font-family: var(--f-display); font-size: 16px; font-weight: 600; }
+form.add label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); min-width: 0; }
+form.add input, form.add select { font: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule-strong); border-radius: 4px; padding: 7px 9px; min-width: 0; }
+.btn { appearance: none; font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 4px; padding: 9px 14px; cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: default; }
+a.btn { display: inline-block; text-decoration: none; white-space: nowrap; }
+a.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Interviews view */
+.ihero { display: flex; flex-direction: column; gap: 6px; }
+.ihero h2 { font-family: var(--f-display); font-weight: 600; font-size: 24px; margin: 0; }
+.ihero p { margin: 0; color: var(--muted); max-width: 72ch; }
+.wempty { font-size: 12.5px; color: var(--muted); font-style: italic; padding: 4px 2px; }
+select.istatus.err { background: var(--err-bg); color: var(--err); }
+nav.jump a[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+nav.wflow .warrow { color: var(--muted); font-size: 15px; padding: 0 1px; }
+section.istage { display: flex; flex-direction: column; gap: 24px; scroll-margin-top: 64px; }
+section.istage:last-child { min-height: calc(100vh - 80px); }
+/* "Do now" priority list (top of Interviews) */
+section.prio { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--warn);
+  border-radius: 8px; padding: 14px 16px; }
+.prio-head h2 { font-family: var(--f-display); font-weight: 600; font-size: 22px; margin: 0; }
+.prio-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+ol.prio-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+ol.prio-list a { display: flex; align-items: center; gap: 12px; padding: 9px 6px; border-top: 1px solid var(--rule); color: var(--ink); text-decoration: none; }
+ol.prio-list li:first-child a { border-top: none; }
+ol.prio-list a:hover { background: var(--paper); }
+ol.prio-list a:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.prio-n { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--f-mono); font-size: 12px; background: var(--paper); border: 1px solid var(--rule-strong); }
+ol.prio-list li:first-child .prio-n { background: var(--warn); color: #fff; border-color: var(--warn); }
+.prio-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.prio-title { font-size: 13.5px; color: var(--muted); } .prio-title b { color: var(--ink); font-size: 14.5px; }
+.prio-do { font-size: 14px; font-weight: 600; }
+.prio-tags { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 40%; }
+@media (max-width: 640px) { ol.prio-list a { flex-wrap: wrap; } .prio-tags { max-width: none; justify-content: flex-start; padding-left: 36px; } }
+ol.prio-list .prio-n.big, ol.qlist2 li:first-child .prio-n.big { background: #fdefc8; color: #7a4f0e; border-color: #b7791f; }
+/* Booked-interview calendar: one timeline that fits the screen; thin strips for days without an interview */
+.bcal { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; }
+.blegend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+.bkey { display: inline-flex; align-items: center; gap: 6px; }
+.bkey::before { content: ""; width: 18px; height: 12px; border-radius: 3px; }
+.bkey.confirmed::before { background: var(--todo-bg); border-left: 3px solid var(--todo); }
+.bkey.offered::before { border: 1px dashed var(--todo); background: repeating-linear-gradient(135deg, var(--todo-bg) 0 4px, transparent 4px 8px); }
+.bnote { margin-left: auto; }
+.bgrid { display: grid; min-width: 0; }
+.bcorner { border-bottom: 1px solid var(--rule-strong); }
+.bday { position: relative; display: flex; align-items: baseline; justify-content: center; gap: 6px; padding: 16px 0 6px; border-bottom: 1px solid var(--rule-strong); font-size: 12px; color: var(--muted); min-width: 0; }
+.bday .bdnum { font-size: 18px; font-weight: 600; color: var(--ink); }
+.bday.today .bdnum { background: var(--err); color: #fff; border-radius: 999px; padding: 0 7px; }
+.bday.thin { flex-direction: column; align-items: center; gap: 0; font-size: 10.5px; }
+.bday.thin .bdnum { font-size: 12px; font-weight: 500; color: var(--muted); }
+.bday.thin.today .bdnum { padding: 0 4px; color: #fff; }
+.bday.past .bdnum { color: var(--muted); }
+.bday .bmon { position: absolute; top: 1px; left: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); white-space: nowrap; }
+.bday.wk, .bcol.wk { border-left: 2px solid var(--rule-strong); }
+.btimes { position: relative; }
+.bhour { position: absolute; right: 6px; transform: translateY(-50%); font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.bhour.first { transform: none; top: 2px !important; }
+.bcol { position: relative; border-left: 1px solid var(--rule); background-image: linear-gradient(to bottom, var(--rule) 1px, transparent 1px); }
+.bcol.we { background-color: var(--paper); }
+.bcol.thin { background-color: var(--paper); }
+.bcol.today { background-color: var(--todo-bg); }
+.bcol.past:not(.today) { opacity: .75; }
+.bnow { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--err); z-index: 2; }
+.bnow::before { content: ""; position: absolute; left: -4px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
+.bev { position: absolute; box-sizing: border-box; border-radius: 6px; padding: 3px 6px; font-size: 11.5px; line-height: 1.3; overflow: hidden;
+  text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 1px; }
+.bev b { font-weight: 600; font-size: 12px; }
+.bev .brole { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bev:hover { filter: brightness(0.96); outline: 1px solid var(--ink); }
+.bev.todo { --c: var(--todo); --cb: var(--todo-bg); } .bev.ok { --c: var(--ok); --cb: var(--ok-bg); }
+.bev.warn { --c: #6b5ca5; --cb: #ece8f6; } .bev.accent { --c: var(--accent); --cb: var(--paper); }
+.bev.big { --c: #b7791f; --cb: #fdefc8; box-shadow: 0 0 0 1px #b7791f; }  /* $100k+ jobs: gold, with a star */
+.bev.big b { color: #7a4f0e; }
+.bkey.big::before { background: #fdefc8; border-left: 3px solid #b7791f; }
+.bev.confirmed { background: var(--cb); border-left: 3px solid var(--c); }
+.bev.offered { border: 1px dashed var(--c); background: repeating-linear-gradient(135deg, var(--cb) 0 6px, var(--surface) 6px 12px); }  /* room to scroll the last stages up under the bar */
+section.istage.invited .ghead { border-top-color: var(--warn); } section.istage.booked .ghead { border-top-color: var(--ok); }
+section.istage.done .ghead { border-top-color: var(--todo); } section.istage.rejected .ghead { border-top-color: var(--err); }
+section.istage.offer .ghead { border-top-color: var(--warn); }
+nav.wflow a[data-stage="offer"] { background: var(--warn-bg); }
+.action.err { border-left-color: var(--err); }
+.pill { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 12px; font-weight: 600; letter-spacing: .02em; padding: 3px 10px; border-radius: 999px; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.warn { background: var(--warn-bg); color: var(--warn); } .pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.todo { background: var(--todo-bg); color: var(--todo); } .pill.muted { background: var(--paper); color: var(--muted); border: 1px solid var(--rule-strong); }
+#intHost { display: flex; flex-direction: column; gap: 40px; }
+/* The interviews spreadsheet: always exactly as wide as the window (no sideways scrolling) and no scroll area of its
+   own; the page scrolls and the header row sticks just under the stage tabs. */
+.xsheet { display: flex; flex-direction: column; gap: 10px; }
+.xwrap { background: var(--surface); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+.xtab { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%; min-width: 0; font-size: 13px; line-height: 1.45; }
+.xtab th, .xtab td { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 7px 8px; text-align: left; vertical-align: top;
+  overflow-wrap: anywhere; overflow: hidden; }
+.xtab tr > :last-child { border-right: 0; }
+.xtab thead th { position: sticky; top: var(--xstick, 0px); z-index: 3; background: var(--paper); border-bottom: 1px solid var(--rule-strong);
+  font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: normal;
+  overflow-wrap: break-word; line-height: 1.25; vertical-align: bottom; padding-right: 10px; }
+.xtab .x-n { text-align: center; padding-inline: 2px; }
+.xtab .x-pa { padding-inline: 6px; }  /* Pay stays narrow */
+.xtab td.x-n { padding-inline: 0; }
+.xtab button.xnum { width: min(24px, 100%); height: auto; aspect-ratio: 1; padding: 0; line-height: 1; }
+/* drag a header's right edge to trade width with the next column; double-click it for the default widths */
+.xrz { position: absolute; top: 0; right: 0; width: 8px; height: 100%; cursor: col-resize; z-index: 5; touch-action: none; }
+.xrz::after { content: ""; position: absolute; top: 20%; bottom: 20%; left: 4px; width: 2px; border-radius: 1px; background: transparent; }
+.xtab thead th:hover .xrz::after { background: var(--rule-strong); }
+.xrz:hover::after, .xrz.on::after { background: var(--todo) !important; }
+body.xresizing, body.xresizing * { cursor: col-resize !important; user-select: none !important; }
+.xbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: 13px; color: var(--muted); }
+.xbar .btn { padding: 5px 12px; font-size: 13px; }
+.xtab tr.xrow:hover td { background: var(--paper); }
+.xtab tr.xgroup td { background: var(--paper); border-top: 2px solid var(--rule-strong); padding: 9px var(--gut, 12px) 8px; }
+.xtab tr.xgroup.invited td, .xtab tr.xgroup.offer td { border-top-color: var(--warn); } .xtab tr.xgroup.booked td { border-top-color: var(--ok); }
+.xtab tr.xgroup.done td { border-top-color: var(--todo); } .xtab tr.xgroup.rejected td { border-top-color: var(--err); }
+.xglab { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-weight: 700; font-size: 14px; color: var(--ink); }
+.xglab .dot { align-self: center; }
+.xgblurb { font-weight: 400; font-size: 12.5px; color: var(--muted); }
+.xtab tr.xempty td { color: var(--muted); font-style: italic; padding: 14px var(--gut, 12px); }
+.xtab .xsub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.xtab .xco { display: block; font-size: 13.5px; }
+.xtab .xtitle { display: block; margin-top: 2px; font-weight: 600; color: var(--ink); }
+.xtab a.xtitle { color: var(--accent); text-decoration: none; } .xtab a.xtitle:hover { text-decoration: underline; }
+.xtab .xwhen, .xtab .xdo { display: block; }
+.xtab .xdo { margin-top: 6px; }
+.xtab .xbig { color: var(--warn); } .xtab .xmuted { color: var(--muted); font-weight: 500; }
+.xtab button.xnum { cursor: pointer; font: inherit; font-size: 12px; } .xtab button.xnum:hover { border-color: var(--ink); }
+.xtab .xpay { appearance: none; border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; }
+.xtab .xpay.xbig { color: var(--warn); } .xtab .xpay:hover { text-decoration: underline; }
+.xtab .xpay:focus-visible, .xtab button.xnum:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.xtab .xpayfull { color: var(--ink); }
+.xchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.xchip { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); }
+.xchip.next { background: var(--ink); color: var(--surface); } .xchip.past { background: var(--paper); color: var(--muted); }
+.xdotop { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.xtab .xdotop select.istatus { width: auto; max-width: 100%; flex: 1 1 auto; min-width: 0; }
+.xprio { flex: none; font-family: var(--f-mono); font-size: 11px; font-weight: 600; padding: 1px 6px; border: 1px solid var(--rule-strong); border-radius: 4px; color: var(--muted); }
+.xgap { height: 6px; }
+.xfitline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; margin-bottom: 6px; }
+.xfitline .pill { font-size: 11px; padding: 2px 8px; }
+.xfitwhy { font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.xtab .xverdict { margin-top: 6px; color: var(--ink); }
+.xlinks { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 6px; font-size: 12.5px; }
+.xlinks a:not(.btn) { color: var(--accent); font-weight: 600; text-decoration: none; }
+.xlinks a:not(.btn):hover { text-decoration: underline; }
+.xlinks a.btn.xbtn { padding: 3px 9px; font-size: 12px; white-space: normal; max-width: 100%; }
+.xlinks.xtop { margin: 0 0 7px; }
+.xlinks a.xjump { display: inline-flex; align-items: center; padding: 2px 9px; border: 1px solid var(--accent); border-radius: 999px; }
+.xtab select.istatus { width: 100%; font-size: 12px; }
+.xtab ul { margin: 0; padding-left: 16px; } .xtab li { margin: 0 0 3px; }
+.xtab .mail { margin: 0; background: none; border: 0; border-radius: 0; }
+.xtab .mail .mlabel { display: none; }
+.xtab .mail dl { display: block; margin: 0 0 6px; padding: 0 0 6px; font-family: inherit; font-size: 12px; border-bottom: 1px solid var(--rule); }
+.xtab .mail dt { display: inline; font-weight: 600; color: var(--muted); } .xtab .mail dt::after { content: ": "; }
+.xtab .mail dd { display: inline; margin: 0; } .xtab .mail dd::after { content: "\A"; white-space: pre; }
+.xtab .mail .mbody { padding: 0; font-size: 12.5px; }
+.xclamp { max-height: 7.3em; overflow: hidden; }
+.xclamp:not(.open):not(.short) { -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+.xclamp.open, .xclamp.short { max-height: none; }
+.xfold { margin-top: 3px; }
+.xmore { margin-top: 4px; border: 0; background: none; padding: 0; color: var(--todo); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.xmore:hover { text-decoration: underline; } .xmore:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+section.istage.calsec { min-height: 0; }
+body.calview .wrap { padding-bottom: 12px; }
+.xfitopt { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); cursor: pointer; }
+.xtab tr.xgroup.slim td { padding-top: 5px; padding-bottom: 4px; }
+.xtab tr.xgroup.slim .xglab { font-size: 12.5px; color: var(--muted); }
+.xtab a.xnext { margin-left: 6px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.xtab a.xnext:hover { text-decoration: underline; }
+/* Narrow windows and phones: each job becomes a card of labelled fields, still with no sideways scrolling */
+@media (max-width: 1100px) {
+  .xtab, .xtab tbody, .xtab tr, .xtab td { display: block; width: auto; }
+  .xtab colgroup, .xtab thead { display: none; }
+  .xtab tr.xrow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px 14px; padding: 10px var(--gut, 16px) 12px; border-bottom: 2px solid var(--rule-strong); }
+  .xtab tr.xrow td { grid-column: span 3; border: 0; padding: 5px 0; }
+  .xtab tr.xrow td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .xtab tr.xrow td.x-n { grid-column: span 1; } .xtab tr.xrow td.x-co { grid-column: span 5; font-size: 15px; }
+  .xtab tr.xrow td.x-n::before, .xtab tr.xrow td.x-co::before { content: none; }
+  .xtab tr.xrow td.x-do, .xtab tr.xrow td.x-re, .xtab tr.xrow td.x-em, .xtab tr.xrow td.x-wd, .xtab tr.xrow td.x-rq,
+  .xtab tr.xrow td.x-cp, .xtab tr.xrow td.x-tb, .xtab tr.xrow td.x-ak { grid-column: 1 / -1; }
+  .xbar .xreset, .xbar .xhint, .xbar .xfitopt { display: none; }
+}
+@media (max-width: 560px) { .xtab tr.xrow td { grid-column: 1 / -1; } }
+/* Interviews sub-tabs (All, Invited, Booked, ...): the open one is filled in */
+nav.jump a.isub[aria-selected="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); box-shadow: none; }
+nav.jump a.isub[aria-selected="true"] .jc { color: inherit; opacity: .8; }
+nav.jump .warrow.sep { margin: 0 2px; }
+select.istatus { font: inherit; font-size: 12.5px; font-weight: 600; border-radius: 999px; padding: 4px 8px; border: 1px solid transparent; cursor: pointer; }
+select.istatus.warn { background: var(--warn-bg); color: var(--warn); } select.istatus.ok { background: var(--ok-bg); color: var(--ok); }
+select.istatus.todo { background: var(--todo-bg); color: var(--todo); } select.istatus.muted { background: var(--paper); color: var(--muted); border-color: var(--rule-strong); }
+select.istatus:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mail { background: var(--mail); border: 1px solid var(--rule-strong); border-radius: 6px; overflow: hidden; min-width: 0; }
+.mail .mlabel { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 10px 16px 0; }
+.mail dl { margin: 0; padding: 8px 16px 12px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-family: var(--f-mono); font-size: 12.5px; border-bottom: 1px solid var(--rule); }
+.mail dt { color: var(--muted); } .mail dd { margin: 0; overflow-wrap: anywhere; }
+.mail .mbody { padding: 14px 16px 18px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; }
+.mail .mbody .sys { color: var(--muted); font-size: 12.5px; }
+.isrc { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.isrc a { color: var(--muted); }
+li.gap { color: var(--warn); }
+
+.pill.err { background: var(--err-bg); color: var(--err); }
+tr.flash td { background: var(--warn-bg) !important; }
+.toast { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--paper); padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .toast { transition: opacity .2s; } }
+/* Borderless, edge to edge on every tab: no page margins and no frames around blocks. Lists and tables run to the
+   window edges; their text lines up with the page gutter. */
+:root { --gut: max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)); }
+.wrap { max-width: none; padding-left: var(--gut); padding-right: var(--gut); }
+nav.views, nav.jump, .scroller, .bcal, section.prio, .xwrap { margin-left: calc(-1 * var(--gut)); margin-right: calc(-1 * var(--gut)); }
+nav.views, nav.jump, .bcal, section.prio { padding-left: var(--gut); padding-right: var(--gut); }
+.scroller, .bcal, section.prio { border-left: 0; border-right: 0; border-radius: 0; }
+.scroller th:first-child, .scroller td:first-child { padding-left: var(--gut); }
+.scroller th:last-child, .scroller td:last-child { padding-right: var(--gut); }
+div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep their row lines */
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Job Tracker</h1>
+    <p class="sub">Jobs to apply to, jobs applied to, applications that hit an error, and jobs you decided to skip. Change a row's status or role family from its menus, and write anything blocking it in Issues on the right.</p>
+    <div class="spec"><span id="where" hidden>On other devices on this network: <b id="where-url"></b></span></div>
+  </header>
+
+  <nav class="views" aria-label="Tracker pages">
+    <a class="vtab" href="#applications" data-view="apps" aria-current="page">Applications</a>
+    <a class="vtab" href="#funnel" data-view="funnel">Funnel</a>
+    <a class="vtab" href="#donow" data-view="donow">Do now <span class="cnt" id="n-do">–</span></a>
+    <a class="vtab" href="#interviews" data-view="interviews">Interview calendar <span class="cnt" id="n-int">–</span></a>
+    <a class="vtab" href="#table" data-view="table">Interview table <span class="cnt" id="n-tab">–</span></a>
+  </nav>
+
+  <div class="view" id="view-apps">
+
+  <div class="strip" role="group" aria-label="Filter by status">
+    <button class="tile" id="f-all" data-f="all" aria-pressed="true"><span class="k">All jobs</span><span class="n" id="n-all">–</span></button>
+    <button class="tile" id="f-todo" data-f="todo" aria-pressed="false"><span class="k"><span class="dot todo"></span>To apply</span><span class="n" id="n-todo">–</span></button>
+    <button class="tile" id="f-applied" data-f="applied" aria-pressed="false"><span class="k"><span class="dot applied"></span>Applied</span><span class="n" id="n-applied">–</span></button>
+    <button class="tile" id="f-error" data-f="error" aria-pressed="false"><span class="k"><span class="dot error"></span>Error</span><span class="n" id="n-error">–</span></button>
+    <button class="tile" id="f-skipped" data-f="skipped" aria-pressed="false"><span class="k"><span class="dot skipped"></span>Skipped</span><span class="n" id="n-skipped">–</span></button>
+  </div>
+
+  <nav class="jump" aria-label="Jump to a section">
+    <span class="jl">Jump to</span>
+    <a href="#h-todo" data-jump="todo"><span class="dot todo"></span>To apply <span class="jc" id="j-todo">–</span></a>
+    <a href="#h-applied" data-jump="applied"><span class="dot applied"></span>Applied <span class="jc" id="j-applied">–</span></a>
+    <a href="#h-error" data-jump="error"><span class="dot error"></span>Error <span class="jc" id="j-error">–</span></a>
+    <a href="#h-skipped" data-jump="skipped"><span class="dot skipped"></span>Skipped <span class="jc" id="j-skipped">–</span></a>
+    <a href="#after-h" data-jump="after"><span class="dot interview"></span>After applying <span class="jc" id="j-after">–</span></a>
+  </nav>
+
+  <div class="note" id="state">Loading your applications…</div>
+  <div id="groups"></div>
+
+  <form class="add" id="addForm" hidden>
+    <h3>Add a job</h3>
+    <label>Company<input id="a-company" required autocomplete="off"></label>
+    <label>Role<input id="a-role" required autocomplete="off"></label>
+    <label>Link<input id="a-url" type="url" placeholder="https://…" autocomplete="off"></label>
+    <label>Location<input id="a-loc" autocomplete="off"></label>
+    <label>Status<select id="a-status"><option value="todo">To apply</option><option value="applied">Applied</option><option value="error">Error</option><option value="skipped">Skipped</option></select></label>
+    <label>Issue<input id="a-issue" autocomplete="off"></label>
+    <button class="btn" id="a-btn" type="submit">Add job</button>
+  </form>
+
+  <section class="after" aria-labelledby="after-h">
+    <h2 id="after-h">After applying</h2>
+    <p>What each employer has done since you applied. A recruiter screen, an interview or an offer counts as a contact. Received means a confirmation email; Under review means a candidate portal says so. Switch a row's response when an email or portal tells you something new. Waiting counts days from the applied date and turns amber after 3 weeks without a contact.</p>
+    <div class="strip" role="group" aria-label="Filter by response">
+      <button class="tile" id="af-all" data-af="all" aria-pressed="true"><span class="k">All applied</span><span class="n" id="r-all">–</span></button>
+      <button class="tile" id="af-rejected" data-af="rejected" aria-pressed="false"><span class="k"><span class="dot rejected"></span>Rejected</span><span class="n" id="r-rejected">–</span></button>
+      <button class="tile" id="af-none" data-af="none" aria-pressed="false"><span class="k"><span class="dot none"></span>No response</span><span class="n" id="r-none">–</span></button>
+      <button class="tile" id="af-received" data-af="received" aria-pressed="false"><span class="k"><span class="dot received"></span>Received</span><span class="n" id="r-received">–</span></button>
+      <button class="tile" id="af-review" data-af="review" aria-pressed="false"><span class="k"><span class="dot review"></span>Under review</span><span class="n" id="r-review">–</span></button>
+      <button class="tile" id="af-screen" data-af="screen" aria-pressed="false"><span class="k"><span class="dot screen"></span>Recruiter screen</span><span class="n" id="r-screen">–</span></button>
+      <button class="tile" id="af-interview" data-af="interview" aria-pressed="false"><span class="k"><span class="dot interview"></span>Interview</span><span class="n" id="r-interview">–</span></button>
+      <button class="tile" id="af-offer" data-af="offer" aria-pressed="false"><span class="k"><span class="dot offer"></span>Offer</span><span class="n" id="r-offer">–</span></button>
+    </div>
+    <div id="afterHost"></div>
+  </section>
+  </div>
+
+  <div class="view funnel" id="view-funnel" hidden>
+    <div class="ihero">
+      <h2 id="funnel-h">Funnel by role family</h2>
+      <p>Which kinds of roles answer. A contact is a recruiter screen, an interview or an offer; confirmation emails and "under review" pages don't count. Role families come from each job's menu on the Applications tab.</p>
+    </div>
+    <div class="spec" id="funnelSummary"></div>
+    <div id="funnelHost"></div>
+    <p class="repeat" id="repeatNote" hidden></p>
+  </div>
+
+  <div class="view" id="view-interviews" hidden>
+    <div id="intHost"><div class="note">Loading your interview calendar…</div></div>
+  </div>
+
+  <div class="view" id="view-donow" hidden>
+    <section class="prio" id="intPriority" aria-labelledby="prio-h"><div class="note">Loading your interview invites…</div></section>
+  </div>
+
+  <div class="view" id="view-table" hidden>
+    <div class="ihero">
+      <h2>Interview table</h2>
+      <p>One row per job. Click <b>more</b> to read a long cell.</p>
+    </div>
+    <nav class="jump wflow" id="intStrip" aria-label="Interview stages"></nav>
+    <div id="tableHost"><div class="note">Loading your interview invites…</div></div>
+  </div>
+
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="tracker-local-db.js"></script>
+<script>
+(function () {
+  const GROUPS = [
+    { key: 'todo', title: 'To apply', blurb: 'Jobs you plan to apply to. Switch the pill to Applied after you submit.' },
+    { key: 'applied', title: 'Applied', blurb: 'Submitted applications, from the apply log and anything you mark here.' },
+    { key: 'error', title: 'Error', blurb: 'Applications that could not be finished. The reason is in Issues.' },
+    { key: 'skipped', title: 'Skipped', blurb: 'Jobs you decided not to apply to (for example, they failed your fit check). The reason is in Issues, so nobody looks at them again.' },
+  ];
+  const LABEL = { todo: 'To apply', applied: 'Applied', error: 'Error', skipped: 'Skipped' };
+  // Role families (the "track" field). Edit this list to use your own: key -> label. Keep "other" as the fallback.
+  // tracker.py's help text lists the same keys.
+  const TRACKS = { engineering: 'Engineering', software: 'Software & IT', test: 'Test & validation', manufacturing: 'Manufacturing & quality',
+    research: 'Research & lab', operations: 'Operations & logistics', customer: 'Sales, field & customer', other: 'Other' };
+  // A row without a saved track gets a guess from its job title (first rule that matches). Pick one in the row's menu to save it.
+  const ROLE_RULES = [
+    ['customer', /sales|account (manager|executive)|customer|field (service|engineer|applications)|applications? engineer|business development|marketing/i],
+    ['software', /software|developer|programmer|\bweb\b|front.?end|back.?end|full.?stack|devops|\bsre\b|data engineer|machine learning|\bml\b|\bit\b|cloud/i],
+    ['test', /test|validation|verification|\bqa\b|reliability|failure analysis/i],
+    ['manufacturing', /manufactur|production|assembl|quality|\bqc\b|inspect|process engineer|technician|operator|machin/i],
+    ['research', /research|scientist|r&d|laborator|\blab\b/i],
+    ['operations', /operations|logistics|supply chain|planner|coordinator|analyst|data ?cent(er|re)/i],
+    ['engineering', /engineer|design|hardware|electrical|mechanical|firmware|systems/i],
+  ];
+  const inferTrack = (d) => {
+    for (const [k, re] of ROLE_RULES) if (k in TRACKS && re.test(str(d.role))) return k;
+    return 'other';
+  };
+  const trackKey = (d) => (TRACKS[d.track] ? d.track : inferTrack(d));
+  const SRC = { log: 'apply log', manual: 'added here' };
+  let rows = new Map(), db = null, canWrite = true, filter = 'all', loaded = false, deferred = false;
+  let interviews = new Map(), iloaded = false, intByJob = {};
+  let pendingJob = null;
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const safeUrl = (u) => { try { const x = new URL(String(u)); return /^https?:$/.test(x.protocol) ? x.href : null; } catch (e) { return null; } };
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const str = (v) => (v == null ? '' : String(v));
+  const extLink = (text, href, cls) => { const a = el('a', cls || null, text); a.href = href; a.target = '_blank'; a.rel = 'noopener'; return a; };
+
+  let toastTimer;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2200); }
+  function setState(msg, alert) { const s = $('state'); if (!msg) { s.hidden = true; return; } s.hidden = false; s.textContent = msg; s.classList.toggle('alert', !!alert); }
+
+  document.querySelectorAll('.tile[data-f]').forEach((b) => b.addEventListener('click', () => {
+    filter = b.dataset.f; document.querySelectorAll('.tile[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  }));
+
+  async function write(id, patch, coll) {
+    if (!db) return;
+    try { await db.collection(coll || 'jobs').doc(id).update(Object.assign({ updatedAt: new Date().toISOString() }, patch)); toast('Saved'); }
+    catch (e) { toast(e && e.message ? 'Could not save: ' + e.message : 'Could not save. Try again.'); }
+  }
+
+  function sortRows(list, key) {
+    return list.sort((a, b) => {
+      if (key === 'todo') { const p = (a.d.priority || 9) - (b.d.priority || 9); if (p) return p; }
+      if (key === 'applied') { const c = str(b.d.appliedOn).localeCompare(str(a.d.appliedOn)); if (c) return c; }
+      return str(a.d.company).localeCompare(str(b.d.company)) || str(a.d.role).localeCompare(str(b.d.role));
+    });
+  }
+
+  function rowEl(id, d) {
+    const st = LABEL[d.status] ? d.status : 'todo';
+    const tr = el('tr', st); tr.id = 'job-' + id;
+    // Status
+    const tdS = el('td');
+    const sel = el('select', 'status ' + st); sel.id = 'st-' + id; sel.setAttribute('aria-label', 'Status for ' + str(d.company) + ' ' + str(d.role));
+    Object.keys(LABEL).forEach((k) => { const o = el('option', null, LABEL[k]); o.value = k; if (k === st) o.selected = true; sel.appendChild(o); });
+    sel.disabled = !canWrite;
+    sel.addEventListener('change', () => { const patch = { status: sel.value }; if (sel.value === 'applied' && !d.appliedOn) patch.appliedOn = today(); write(id, patch); });
+    tdS.appendChild(sel);
+    if (canWrite) {
+      const rm = el('button', 'rm', 'Remove'); rm.type = 'button'; let armT;
+      rm.addEventListener('click', async () => {
+        if (!rm.classList.contains('arm')) { rm.classList.add('arm'); rm.textContent = 'Click again to remove'; armT = setTimeout(() => { rm.classList.remove('arm'); rm.textContent = 'Remove'; }, 4000); return; }
+        clearTimeout(armT);
+        try { await db.collection('jobs').doc(id).delete(); toast('Removed'); } catch (e) { toast('Could not remove. Try again.'); }
+      });
+      tdS.appendChild(rm);
+    }
+    tr.appendChild(tdS);
+    // Job
+    const tdJ = el('td', 'job');
+    const co = el('div', 'company'); if (d.priority === 1 && st === 'todo') co.appendChild(el('span', 'star', '★ ')); co.appendChild(document.createTextNode(str(d.company))); tdJ.appendChild(co);
+    const role = el('div', 'role'); const href = safeUrl(d.url);
+    if (href) role.appendChild(extLink(str(d.role), href)); else role.textContent = str(d.role);
+    tdJ.appendChild(role);
+    if (d.source) tdJ.appendChild(el('span', 'src', SRC[d.source] || str(d.source)));
+    { const inv = inviteLink(id, interviews.get(intByJob[id])); if (inv) { tdJ.appendChild(document.createTextNode(' ')); tdJ.appendChild(extLink('Invitation email ↗', inv, 'prep-link')); } }
+    const tk = trackKey(d);
+    if (canWrite) {
+      const ts = el('select', 'track' + (TRACKS[d.track] ? '' : ' auto')); ts.id = 'tk-' + id;
+      ts.setAttribute('aria-label', 'Role family for ' + str(d.company) + ' ' + str(d.role));
+      if (!TRACKS[d.track]) ts.title = 'Guessed from the title. Pick one to save it.';
+      Object.keys(TRACKS).forEach((k) => { const o = el('option', null, TRACKS[k]); o.value = k; if (k === tk) o.selected = true; ts.appendChild(o); });
+      ts.addEventListener('change', () => write(id, { track: ts.value }));
+      tdJ.appendChild(ts);
+    } else tdJ.appendChild(el('span', 'trk', TRACKS[tk]));
+    tr.appendChild(tdJ);
+    tr.appendChild(el('td', null, str(d.location) || '—'));
+    tr.appendChild(el('td', 'mono', str(d.pay) || '—'));
+    tr.appendChild(el('td', 'mono', st === 'todo' ? (d.posted ? str(d.posted) + ' ago' : '—') : (str(d.appliedOn) || '—')));
+    tr.appendChild(el('td', null, str(d.resume) || '—'));
+    tr.appendChild(el('td', 'notes', str(d.notes) || '—'));
+    // Issues (right end)
+    const tdI = el('td', 'issue' + (str(d.issue).trim() ? ' has' : ''));
+    const ta = el('textarea'); ta.id = 'is-' + id; ta.value = str(d.issue); ta.placeholder = canWrite ? 'No issues' : ''; ta.disabled = !canWrite;
+    ta.setAttribute('aria-label', 'Issues for ' + str(d.company) + ' ' + str(d.role));
+    ta.rows = Math.min(5, Math.max(2, Math.ceil(str(d.issue).length / 34)));
+    ta.addEventListener('blur', () => { if (ta.value !== str(d.issue)) write(id, { issue: ta.value.trim() }); if (deferred) { deferred = false; setTimeout(render, 0); } });
+    tdI.appendChild(ta); tr.appendChild(tdI);
+    return tr;
+  }
+
+  function render() {
+    const active = document.activeElement;
+    if (active && active.tagName === 'TEXTAREA' && active.closest('#groups, #afterHost')) { deferred = true; return; }
+    const all = [...rows.entries()].map(([id, d]) => ({ id, d }));
+    const counts = { todo: 0, applied: 0, error: 0, skipped: 0 };
+    all.forEach((r) => { counts[LABEL[r.d.status] ? r.d.status : 'todo']++; });
+    $('n-all').textContent = all.length; $('n-todo').textContent = counts.todo; $('n-applied').textContent = counts.applied; $('n-error').textContent = counts.error;
+    $('n-skipped').textContent = counts.skipped;
+    ['todo', 'applied', 'error', 'skipped'].forEach((k) => { $('j-' + k).textContent = counts[k]; });
+    $('j-after').textContent = counts.applied;
+    const host = $('groups'); host.replaceChildren();
+    if (loaded) setState(all.length === 0 ? 'No jobs yet. Add the first one with the form below.' : null);
+    GROUPS.forEach((g) => {
+      if (filter !== 'all' && filter !== g.key) return;
+      const list = sortRows(all.filter((r) => (LABEL[r.d.status] ? r.d.status : 'todo') === g.key), g.key);
+      const sec = el('section', 'group ' + g.key); sec.setAttribute('aria-labelledby', 'h-' + g.key);
+      const head = el('div', 'ghead'); const h2 = el('h2'); h2.id = 'h-' + g.key; h2.appendChild(el('span', 'dot ' + g.key)); h2.appendChild(document.createTextNode(g.title));
+      head.appendChild(h2); head.appendChild(el('span', 'count', list.length + (list.length === 1 ? ' job' : ' jobs'))); head.appendChild(el('p', null, g.blurb));
+      sec.appendChild(head);
+      const sc = el('div', 'scroller'); const t = el('table'); const th = el('thead'); const hr = el('tr');
+      [['Status'], ['Job'], ['Location'], ['Pay'], [g.key === 'todo' ? 'Posted' : 'Applied on'], ['Resume'], ['Notes'], ['Issues', 'issue']].forEach(([n, c]) => hr.appendChild(el('th', c || null, n)));
+      th.appendChild(hr); t.appendChild(th);
+      const tb = el('tbody');
+      if (!list.length) { const er = el('tr', 'empty-row'); const td = el('td', null, 'Nothing here.'); td.colSpan = 8; er.appendChild(td); tb.appendChild(er); }
+      list.forEach((r) => tb.appendChild(rowEl(r.id, r.d)));
+      t.appendChild(tb); sc.appendChild(t); sec.appendChild(sc); host.appendChild(sec);
+    });
+    renderAfter(all);
+    renderFunnel(all);
+    if (pendingJob) { const a = pendingJob; pendingJob = null; jumpToJob(a); }
+  }
+
+  // After applying: response tracker for rows whose status is "applied"
+  // Listed in hiring order, offer last (also the order of each row's response menu).
+  const RESP = { rejected: 'Rejected', none: 'No response', received: 'Received', review: 'Under review', screen: 'Recruiter screen', interview: 'Interview', offer: 'Offer' };
+  const CONTACT = { offer: true, interview: true, screen: true };
+  let afilter = 'all';
+  const respKey = (d) => (RESP[d.response] ? d.response : 'none');
+  const daysSince = (iso) => {
+    if (!iso) return null; const d = new Date(String(iso) + 'T00:00:00'); if (isNaN(d.getTime())) return null;
+    const t = new Date(); t.setHours(0, 0, 0, 0); return Math.max(0, Math.round((t - d) / 86400000));
+  };
+  document.querySelectorAll('.tile[data-af]').forEach((b) => b.addEventListener('click', () => {
+    afilter = b.dataset.af; document.querySelectorAll('.tile[data-af]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  }));
+
+  function afterRow(id, d) {
+    const rk = respKey(d);
+    const tr = el('tr', 'resp-' + rk);
+    const tdS = el('td');
+    const sel = el('select', 'status ' + rk); sel.id = 'rs-' + id; sel.setAttribute('aria-label', 'Response from ' + str(d.company) + ' for ' + str(d.role));
+    Object.keys(RESP).forEach((k) => { const o = el('option', null, RESP[k]); o.value = k; if (k === rk) o.selected = true; sel.appendChild(o); });
+    sel.disabled = !canWrite;
+    sel.addEventListener('change', () => write(id, { response: sel.value, responseOn: today() }));
+    tdS.appendChild(sel);
+    if (d.responseOn) { const u = el('span', 'src', 'updated ' + str(d.responseOn)); u.style.display = 'block'; tdS.appendChild(u); }
+    tr.appendChild(tdS);
+    const tdJ = el('td', 'job');
+    tdJ.appendChild(el('div', 'company', str(d.company)));
+    const role = el('div', 'role'); const href = safeUrl(d.url);
+    if (href) role.appendChild(extLink(str(d.role), href)); else role.textContent = str(d.role);
+    tdJ.appendChild(role);
+    tdJ.appendChild(el('span', 'trk', TRACKS[trackKey(d)] + (d.lane === 'fresh' ? ' · fresh lane' : '')));
+    if (intByJob[id]) { const a = el('a', 'prep-link', 'Interview prep →'); a.href = '#interview-' + intByJob[id]; tdJ.appendChild(a); }
+    { const inv = inviteLink(id, interviews.get(intByJob[id])); if (inv) { tdJ.appendChild(document.createTextNode(' ')); tdJ.appendChild(extLink('Invitation email ↗', inv, 'prep-link')); } }
+    tr.appendChild(tdJ);
+    tr.appendChild(el('td', null, str(d.location) || '—'));
+    tr.appendChild(el('td', 'mono', str(d.appliedOn) || '—'));
+    const days = daysSince(d.appliedOn);
+    const w = el('td', 'mono wait' + (!CONTACT[rk] && rk !== 'rejected' && days != null && days >= 21 ? ' long' : ''), days == null ? '—' : days + (days === 1 ? ' day' : ' days'));
+    tr.appendChild(w);
+    const tdN = el('td', 'issue note' + (str(d.responseNote).trim() ? ' has' : ''));
+    const ta = el('textarea'); ta.id = 'rn-' + id; ta.value = str(d.responseNote); ta.placeholder = canWrite ? 'What the portal or email said' : ''; ta.disabled = !canWrite;
+    ta.setAttribute('aria-label', 'Status note for ' + str(d.company) + ' ' + str(d.role));
+    ta.rows = Math.min(4, Math.max(2, Math.ceil(str(d.responseNote).length / 34)));
+    ta.addEventListener('blur', () => { if (ta.value !== str(d.responseNote)) write(id, { responseNote: ta.value.trim() }); if (deferred) { deferred = false; setTimeout(render, 0); } });
+    tdN.appendChild(ta); tr.appendChild(tdN);
+    return tr;
+  }
+
+  function renderAfter(all) {
+    const applied = all.filter((r) => r.d.status === 'applied');
+    const c = { offer: 0, interview: 0, screen: 0, review: 0, received: 0, rejected: 0, none: 0 };
+    applied.forEach((r) => { c[respKey(r.d)]++; });
+    $('r-all').textContent = applied.length;
+    Object.keys(c).forEach((k) => { $('r-' + k).textContent = c[k]; });
+    const order = { offer: 0, interview: 1, screen: 2, review: 3, received: 4, none: 5, rejected: 6 };
+    const list = applied.filter((r) => afilter === 'all' || respKey(r.d) === afilter)
+      .sort((a, b) => (order[respKey(a.d)] - order[respKey(b.d)]) || str(b.d.appliedOn).localeCompare(str(a.d.appliedOn)) || str(a.d.company).localeCompare(str(b.d.company)));
+    const host = $('afterHost'); host.replaceChildren();
+    const sc = el('div', 'scroller'); const t = el('table', 'narrow'); const th = el('thead'); const hr = el('tr');
+    [['Response'], ['Job'], ['Location'], ['Applied on'], ['Waiting'], ['Status note', 'issue']].forEach(([n, cl]) => hr.appendChild(el('th', cl || null, n)));
+    th.appendChild(hr); t.appendChild(th);
+    const tb = el('tbody');
+    if (!list.length) { const er = el('tr', 'empty-row'); const td = el('td', null, loaded ? 'Nothing here.' : 'Loading…'); td.colSpan = 6; er.appendChild(td); tb.appendChild(er); }
+    list.forEach((r) => tb.appendChild(afterRow(r.id, r.d)));
+    t.appendChild(tb); sc.appendChild(t); host.appendChild(sc);
+  }
+
+  // Funnel by role family and lane
+  const normCo = (s) => str(s).toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\b(inc|llc|ltd|co|corp|corporation|company|technologies|technology|systems|group|usa|us)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  function renderFunnel(all) {
+    const applied = all.filter((r) => r.d.status === 'applied');
+    const skipped = all.filter((r) => r.d.status === 'skipped').length;
+    const blank = () => ({ n: 0, contacts: 0, review: 0, waiting: 0, stale: 0, rejected: 0 });
+    const byTrack = {}, byLane = {}, tot = blank();
+    applied.forEach((r) => {
+      const rk = respKey(r.d), days = daysSince(r.d.appliedOn);
+      const add = (b) => {
+        b.n++;
+        if (CONTACT[rk]) b.contacts++;
+        else if (rk === 'rejected') b.rejected++;
+        else { b.waiting++; if (rk === 'review') b.review++; if (days != null && days > 21) b.stale++; }
+      };
+      const tk = trackKey(r.d);
+      add(byTrack[tk] || (byTrack[tk] = blank())); add(tot);
+      if (r.d.lane) add(byLane[r.d.lane] || (byLane[r.d.lane] = blank()));
+    });
+    const pct = (b) => (b.n ? Math.round((b.contacts / b.n) * 100) + '%' : '—');
+    const sum = $('funnelSummary'); sum.replaceChildren();
+    [[tot.n, 'applied'], [tot.contacts + ' (' + pct(tot) + ')', 'contacts'], [tot.stale, 'open past 3 weeks'], [skipped, 'skipped']]
+      .forEach(([v, k]) => { const s = el('span'); s.appendChild(el('b', null, String(v))); s.appendChild(document.createTextNode(' ' + k)); sum.appendChild(s); });
+    const host = $('funnelHost'); host.replaceChildren();
+    const table = (title, groups, labels) => {
+      const sc = el('div', 'scroller'); const t = el('table'); const th = el('thead'); const hr = el('tr');
+      [[title], ['Applied', 'num'], ['Contacts', 'num'], ['Contact rate', 'num'], ['Under review', 'num'], ['Waiting', 'num'], ['Open past 3 weeks', 'num'], ['Rejected', 'num']]
+        .forEach(([n, c]) => hr.appendChild(el('th', c || null, n)));
+      th.appendChild(hr); t.appendChild(th);
+      const tb = el('tbody');
+      const keys = Object.keys(groups).sort((a, b) => groups[b].n - groups[a].n);
+      if (!keys.length) { const er = el('tr', 'empty-row'); const td = el('td', null, loaded ? 'Nothing applied yet.' : 'Loading…'); td.colSpan = 8; er.appendChild(td); tb.appendChild(er); }
+      keys.forEach((k) => {
+        const b = groups[k]; const tr = el('tr');
+        tr.appendChild(el('td', null, labels[k] || k));
+        tr.appendChild(el('td', 'num', String(b.n)));
+        tr.appendChild(el('td', 'num', String(b.contacts)));
+        tr.appendChild(el('td', 'num rate' + (b.contacts ? ' some' : (b.n >= 10 && tot.stale ? ' zero' : '')), pct(b)));
+        tr.appendChild(el('td', 'num', String(b.review)));
+        tr.appendChild(el('td', 'num', String(b.waiting)));
+        tr.appendChild(el('td', 'num', String(b.stale)));
+        tr.appendChild(el('td', 'num', String(b.rejected)));
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb); sc.appendChild(t); host.appendChild(sc);
+    };
+    table('Role family', byTrack, TRACKS);
+    if (Object.keys(byLane).length) table('Lane', byLane, { fresh: 'Fresh (≤ 3 days old)', standard: 'Standard' });
+    const per = {}, names = {};
+    applied.forEach((r) => { const k = normCo(r.d.company); if (!k) return; per[k] = (per[k] || 0) + 1; if (!names[k]) names[k] = str(r.d.company).replace(/\s*\(.*\)\s*$/, ''); });
+    const many = Object.keys(per).filter((k) => per[k] >= 3).sort((a, b) => per[b] - per[a]);
+    const rep = $('repeatNote');
+    if (many.length) {
+      rep.hidden = false;
+      rep.textContent = 'Three or more applications at one employer: ' + many.map((k) => names[k] + ' ' + per[k]).join(', ') + '.';
+    } else rep.hidden = true;
+  }
+
+  // ---------- Interviews view (collection "interviews") ----------
+  // Card status (the menu, in hiring order) and the workflow stage each card sits in.
+  const ISTATUS = { action: 'Needs your action', drafted: 'Reply drafted', booked: 'Interview booked', done: 'Interviewed, waiting',
+    rejected: 'No longer considered', offer: 'Got an offer' };
+  const ITONE = { action: 'warn', drafted: 'todo', booked: 'ok', done: 'muted', rejected: 'err', offer: 'warn' };
+  const istKey = (d) => (ISTATUS[d.status] ? d.status : 'action');
+  const STAGES = [
+    { key: 'invited', title: 'Invited', blurb: 'Reply or book a time' },
+    { key: 'booked', title: 'Interview booked', blurb: 'Prepare' },
+    { key: 'done', title: 'Interviewed', blurb: 'Waiting to hear back' },
+    { key: 'rejected', title: 'No longer considered', blurb: 'Closed' },
+    { key: 'offer', title: 'Got an offer', blurb: 'Decide' },
+  ];
+  // The linked job row's response wins when it says offer or rejected (news can reach the row before the card).
+  function stageOf(d) {
+    const st = istKey(d), job = d.jobId ? rows.get(d.jobId) : null, resp = job && job.response;
+    if (st === 'offer' || resp === 'offer') return 'offer';
+    if (st === 'rejected' || resp === 'rejected') return 'rejected';
+    return st === 'action' || st === 'drafted' ? 'invited' : st;
+  }
+  const STONE = { invited: 'warn', booked: 'ok', done: 'muted', rejected: 'err', offer: 'warn' };
+
+  // ---------- Meeting and booking links on interview cards ----------
+  // Fields meetingUrl (the video call) and bookingUrl (the scheduling or "manage your booking" page); a card may also
+  // keep such a link in actionUrl, so that is sorted too.
+  const MEET_RE = /^https:\/\/([a-z0-9-]+\.)*(meet\.google\.com|zoom\.us|teams\.microsoft\.com|teams\.live\.com|webex\.com|whereby\.com|chime\.aws)\//i;
+  const BOOK_RE = /^https:\/\/(scheduler\.zoom\.us|calendly\.com|[a-z0-9-]+\.calendly\.com|you\.ashbyhq\.com|schedule\.lever\.co|[a-z0-9-]+\.goodtime\.io|cal\.com|calendar\.app\.google|[a-z0-9-]+\.youcanbook\.me|outlook\.office365\.com\/(owa\/calendar|book))\//i;
+  function meetingLinks(d) {
+    const a = str(d.actionUrl), book = BOOK_RE.test(a);  // a booking page first: MEET_RE also matches scheduler.zoom.us
+    return {
+      meeting: safeUrl(d.meetingUrl) || (!book && MEET_RE.test(a) ? safeUrl(a) : null),
+      booking: safeUrl(d.bookingUrl) || (book ? safeUrl(a) : null),
+    };
+  }
+
+  // ---------- "Do now" priority list at the top of the Interviews tab ----------
+  // From each card: rank (order), doNow (the next step, one line), fitLevel (strong|ok|weak|poor), fit (short reason).
+  // Closed cards (no longer considered) drop off; an offer always goes first.
+  const FIT = { strong: ['Strong fit', 'ok'], ok: ['Fair fit', 'todo'], weak: ['Stretch', 'warn'], poor: ['Weak fit', 'muted'],
+    unrated: ['Not rated', 'muted'] };
+  function renderPriority(staged) {
+    const box = $('intPriority'); box.replaceChildren();
+    const open = staged.filter((r) => r.stage !== 'rejected')
+      .sort((a, b) => ((b.stage === 'offer') - (a.stage === 'offer')) || ((a.d.rank ?? 99) - (b.d.rank ?? 99)) || str(a.d.company).localeCompare(str(b.d.company)));
+    $('n-do').textContent = String(open.length);
+    const head = el('div', 'prio-head'); const h2 = el('h2', null, 'Do now'); h2.id = 'prio-h'; head.appendChild(h2);
+    head.appendChild(el('p', null, 'Your interviews in order of priority, each with the next step. Click one to open its row in the Interview table.'));
+    box.appendChild(head);
+    if (!open.length) { box.appendChild(el('div', 'note', iloaded ? 'Nothing to do right now. New interview invites show up here.' : 'Loading your interview invites…')); return; }
+    const ol = el('ol', 'prio-list');
+    open.forEach(({ id, d, stage }, i) => {
+      const li = el('li'); const a = el('a'); a.href = '#interview-' + id;
+      a.appendChild(el('span', 'prio-n', String(i + 1)));
+      const main = el('span', 'prio-main');
+      const t = el('span', 'prio-title'); t.appendChild(el('b', null, (isBig(d) ? '★ ' : '') + str(d.company))); t.appendChild(document.createTextNode(' · ' + str(d.role))); main.appendChild(t);
+      main.appendChild(el('span', 'prio-do', str(d.doNow) || str(d.todo) || 'Open the card for the next step'));
+      a.appendChild(main);
+      const tags = el('span', 'prio-tags');
+      const sg = STAGES.find((s) => s.key === stage); tags.appendChild(el('span', 'pill ' + (STONE[stage] || 'muted'), stage === 'invited' ? ISTATUS[istKey(d)] : (sg ? sg.title : stage)));
+      const f = FIT[d.fitLevel]; if (f) { const fp = el('span', 'pill ' + f[1], f[0]); if (d.fit) fp.title = str(d.fit); tags.appendChild(fp); }
+      a.appendChild(tags);
+      li.appendChild(a); ol.appendChild(li);
+    });
+    box.appendChild(ol);
+  }
+
+  // ---------- Booked interviews calendar: an Apple-Calendar-style week grid under "2. Interview booked" ----------
+  // Times come from the card's `slots` [{start, end, state: "offered"|"confirmed", note}] (ISO, local time), or, if
+  // that is missing, are read from the bookedFor text ("Thu Nov 19 1:30-3:30 pm, Fri Nov 20 ...").
+  const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  // "Waiting for them to pick: …", "Offered: …": times that aren't booked yet
+  const isTentative = (d) => /^\s*(waiting|offered|proposed|options?)\b/i.test(str(d.bookedFor));
+  function parseSlots(text) {
+    const s = str(text), out = [], now = new Date();
+    const re = /\b(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?(?:\s*(?:-|–|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?)?/gi;
+    const to24 = (hh, ap) => { const x = (+hh) % 12; return /^p/i.test(ap || '') ? x + 12 : x; };
+    let m;
+    while ((m = re.exec(s))) {
+      const mon = MONTHS.indexOf(m[1].toLowerCase()), day = +m[2];
+      if (!m[5] && !m[8]) continue;                       // no am/pm anywhere: too unsure to place
+      let y = now.getFullYear(); if (mon < now.getMonth() - 6) y++;
+      let ap1 = m[5] || m[8];
+      if (!m[5] && m[6] && (+m[3]) % 12 > (+m[6]) % 12) ap1 = 'am';  // "11:30-1:00 pm"
+      const start = new Date(y, mon, day, to24(m[3], ap1), +(m[4] || 0));
+      let end = m[6] ? new Date(y, mon, day, to24(m[6], m[8] || m[5]), +(m[7] || 0)) : new Date(start.getTime() + 30 * 60000);
+      if (!(end > start)) end = new Date(start.getTime() + 30 * 60000);
+      out.push({ start, end });
+    }
+    return out;
+  }
+  const hm = (dt) => dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(':00', '');
+  // Top of the posted pay range as a yearly number ("$70K–$120K" -> 120000, "$24-28/hr" -> 58240), or 0 if unknown.
+  function payTop(text) {
+    const s = str(text).replace(/\([^)]*\)/g, ' '); if (!/\d/.test(s)) return 0;   // text in parentheses is a note, not the pay
+    const hourly = /\/\s*h(ou)?r|per hour|an hour|hourly/i.test(s), anyK = /\d\s*k\b/i.test(s);
+    let top = 0, m; const re = /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k)?/gi;
+    while ((m = re.exec(s))) {
+      let v = parseFloat(m[1].replace(/,/g, ''));
+      if (m[2] || (anyK && v < 1000)) v *= 1000; else if (hourly && v < 500) v *= 2080;
+      if (v >= 10000 || hourly) top = Math.max(top, v);
+    }
+    return top;
+  }
+  const BIG_PAY = 100000;  // interviews whose posted pay reaches this (yearly) get a gold star
+  const payText = (d) => (d.posting && d.posting.pay) || d.pay || '';
+  const isBig = (d) => payTop(payText(d)) >= BIG_PAY;
+  function payLabel(d) {
+    const s = str(payText(d)), top = payTop(s);
+    if (!top) return 'Pay not posted';
+    return /\/\s*h(ou)?r|per hour|an hour|hourly/i.test(s.replace(/\([^)]*\)/g, ' ')) ? 'up to $' + Math.round(top / 2080) + '/hr' : 'up to $' + Math.round(top / 1000) + 'k';
+  }
+  // Start time of a card's first slot (or of the first time in bookedFor), for sorting; far future if none.
+  function firstSlot(d) {
+    const xs = (Array.isArray(d.slots) && d.slots.length ? d.slots.map((x) => new Date(x && x.start)) : parseSlots(d.bookedFor).map((x) => x.start))
+      .map((x) => x.getTime()).filter((x) => !isNaN(x));
+    return xs.length ? Math.min(...xs) : 8.64e15;
+  }
+  // Booked interviews on one timeline that fits on one screen: every day from the Monday of the first interview's week to
+  // the Sunday of the last one, side by side. A day with an interview is wide, a day without one is a thin strip
+  // (weekends thinner), only the hours that hold interviews are drawn, and the hour height is chosen so the whole
+  // calendar fits the window. Weeks go onto a second row only when they don't fit across.
+  function calendarEl(cards) {
+    const COLORS = ['todo', 'ok', 'warn', 'accent'];
+    const evs = [];
+    cards.forEach(({ id, d }, i) => {
+      const tentative = isTentative(d);
+      const slots = Array.isArray(d.slots) && d.slots.length
+        ? d.slots.map((x) => ({ start: new Date(x && x.start), end: new Date((x && (x.end || x.start))), state: x && x.state, note: x && x.note }))
+        : parseSlots(d.bookedFor).map((x) => ({ ...x, state: tentative ? 'offered' : 'confirmed' }));
+      slots.filter((x) => !isNaN(x.start.getTime())).forEach((x) => {
+        if (isNaN(x.end.getTime()) || x.end <= x.start) x.end = new Date(x.start.getTime() + 30 * 60000);
+        evs.push({ id, d, color: COLORS[i % COLORS.length], ...x, state: x.state === 'confirmed' ? 'confirmed' : 'offered' });
+      });
+    });
+    const box = el('div', 'bcal');
+    const legend = el('div', 'blegend');
+    legend.appendChild(el('span', 'bkey confirmed', 'Confirmed')); legend.appendChild(el('span', 'bkey offered', 'Times offered, waiting for them to pick'));
+    legend.appendChild(el('span', 'bkey big', '★ Pays $' + Math.round(BIG_PAY / 1000) + 'k+'));
+    legend.appendChild(el('span', 'bnote', 'Your computer’s time zone. Click a block to open its row.'));
+    box.appendChild(legend);
+    if (!evs.length) { box.appendChild(el('div', 'wempty', 'No times to show yet: the booked cards don’t list a date and time.')); return box; }
+    const dayOf = (dt) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    const monday = (dt) => { const x = dayOf(dt); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+    const today = dayOf(new Date()), now = new Date();
+    const first = monday(new Date(Math.min(...evs.map((e) => e.start.getTime()))));
+    const last = monday(new Date(Math.max(...evs.map((e) => e.start.getTime())))); last.setDate(last.getDate() + 6);
+    // the day's interviews, side by side where two overlap
+    const byDay = new Map();
+    evs.forEach((e) => { const k = dayOf(e.start).getTime(); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(e); });
+    const lanesOf = new Map();
+    byDay.forEach((list, k) => {
+      list.sort((a, b) => a.start - b.start);
+      // a short call is drawn at least ~35 minutes tall so its name and time show; lanes use that drawn height
+      const lanes = []; list.forEach((e) => {
+        const shown = new Date(Math.max(e.end.getTime(), e.start.getTime() + 35 * 60000));
+        let j = lanes.findIndex((end) => end <= e.start); if (j < 0) { j = lanes.length; lanes.push(shown); } else lanes[j] = shown; e.lane = j;
+      });
+      lanesOf.set(k, lanes.length);
+    });
+    // only the hours that hold interviews, with half an hour to spare on each side
+    const hr = (t) => t.getHours() + t.getMinutes() / 60;
+    let h0 = Math.max(0, Math.floor(Math.min(...evs.map((e) => hr(e.start))) - 0.5));
+    let h1 = Math.min(24, Math.ceil(Math.max(...evs.map((e) => (dayOf(e.end).getTime() > dayOf(e.start).getTime() ? 24 : hr(e.end)))) + 0.5));
+    if (h1 - h0 < 3) { h1 = Math.min(24, h0 + 3); h0 = Math.max(0, h1 - 3); }
+    // One single row, always: every day side by side. A day without an interview is a thin strip (weekends thinner);
+    // the days with one share all the rest of the width. In a narrow window the strips get thinner, so nothing ever
+    // scrolls sideways and the calendar never breaks onto a second row.
+    const avail = Math.max(320, document.documentElement.clientWidth - 40);
+    const weeks = [];
+    for (let w = new Date(first); w <= last; w.setDate(w.getDate() + 7)) weeks.push([...Array(7)].map((_, i) => { const x = new Date(w); x.setDate(w.getDate() + i); return x; }));
+    const allDays = weeks.flat(), isWe = (d) => d.getDay() % 6 === 0, has = (d) => lanesOf.has(d.getTime());
+    const TCOL = avail < 760 ? 34 : 46;
+    let THIN = 30, THIN_WE = 22;
+    const thinTotal = allDays.filter((d) => !has(d)).reduce((sum, d) => sum + (isWe(d) ? THIN_WE : THIN), 0);
+    const room = avail - TCOL - allDays.filter(has).length * 90;  // leave each day with an interview about 90 px or more
+    if (thinTotal > 0 && thinTotal > room) { const f = Math.max(0, room) / thinTotal; THIN = Math.max(4, Math.floor(THIN * f)); THIN_WE = Math.max(3, Math.floor(THIN_WE * f)); }
+    const rowsOfWeeks = [weeks];
+    // hour height: a first guess here; calFit() then makes the calendar reach the bottom of the window once it's shown
+    const HOUR = Math.max(36, Math.min(110, Math.floor((window.innerHeight - 330) / (h1 - h0) - 8)));
+    box.style.setProperty('--bh', HOUR + 'px'); box.dataset.units = String(h1 - h0);
+    const at = (hours, plus) => 'calc(var(--bh) * ' + (+hours).toFixed(4) + (plus ? ' + ' + plus : '') + ')';
+    const fmtMon = (d) => d.toLocaleDateString([], { month: 'short' });
+    rowsOfWeeks.forEach((rowWeeks) => {
+      const days = rowWeeks.flat();
+      const grid = el('div', 'bgrid');
+      grid.style.gridTemplateColumns = TCOL + 'px ' + days.map((d) => { const n = lanesOf.get(d.getTime()); return n ? 'minmax(0, ' + n + 'fr)' : (isWe(d) ? THIN_WE : THIN) + 'px'; }).join(' ');
+      grid.appendChild(el('div', 'bcorner'));
+      days.forEach((day, i) => {
+        const has = lanesOf.has(day.getTime()), isToday = day.getTime() === today.getTime();
+        const hd = el('div', 'bday' + (has ? '' : ' thin') + (isToday ? ' today' : '') + (day.getDay() === 1 ? ' wk' : '') + (day < today ? ' past' : ''));
+        if (i === 0 || day.getDate() === 1) hd.appendChild(el('span', 'bmon', fmtMon(day)));  // the month where a row or a month starts
+        hd.appendChild(el('span', 'bdow', day.toLocaleDateString([], { weekday: has ? 'short' : 'narrow' })));
+        hd.appendChild(el('span', 'bdnum', String(day.getDate())));
+        hd.title = day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + (has ? '' : ': no interview');
+        grid.appendChild(hd);
+      });
+      const times = el('div', 'btimes'); times.style.height = at(h1 - h0);
+      for (let h = h0; h < h1; h++) { const t = el('div', 'bhour' + (h === h0 ? ' first' : ''), new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' })); t.style.top = at(h - h0); times.appendChild(t); }
+      grid.appendChild(times);
+      days.forEach((day) => {
+        const k = day.getTime(), list = byDay.get(k) || [], n = lanesOf.get(k) || 1, isToday = k === today.getTime();
+        const col = el('div', 'bcol' + (day.getDay() % 6 === 0 ? ' we' : '') + (isToday ? ' today' : '') + (list.length ? '' : ' thin') + (day.getDay() === 1 ? ' wk' : '') + (day < today ? ' past' : ''));
+        col.style.height = at(h1 - h0); col.style.backgroundSize = '100% var(--bh)';
+        if (isToday && hr(now) > h0 && hr(now) < h1) { const nl = el('div', 'bnow'); nl.style.top = at(hr(now) - h0); col.appendChild(nl); }
+        list.forEach((e) => {
+          const big = isBig(e.d);
+          const a = el('a', 'bev ' + (big ? 'big' : e.color) + ' ' + e.state); a.href = '#interview-' + e.id;
+          a.style.top = at(hr(e.start) - h0, '1px');
+          a.style.height = 'max(34px, calc(var(--bh) * ' + ((e.end - e.start) / 3600000).toFixed(4) + ' - 3px))';
+          a.style.left = 'calc(' + (100 * e.lane / n) + '% + 3px)'; a.style.width = 'calc(' + (100 / n) + '% - 6px)';
+          a.appendChild(el('b', null, (big ? '★ ' : '') + str(e.d.company)));
+          a.appendChild(el('span', null, hm(e.start) + ' – ' + hm(e.end) + (e.state === 'offered' ? ' · offered' : '')));
+          if (e.d.role) a.appendChild(el('span', 'brole', str(e.d.role)));
+          a.title = str(e.d.company) + ' · ' + str(e.d.role) + '\n' + e.start.toLocaleString() + ' – ' + hm(e.end) + (e.note ? '\n' + str(e.note) : '');
+          col.appendChild(a);
+        });
+        grid.appendChild(col);
+      });
+      box.appendChild(grid);
+    });
+    return box;
+  }
+  // The calendar fills the window down to its bottom edge, without making the page scroll: the hour height comes from
+  // the space left below the calendar's top. It runs once the calendar is on screen, and again when the window resizes.
+  function calFit() {
+    const v = $('view-interviews'), box = v && !v.hidden ? v.querySelector('.bcal[data-units]') : null;
+    if (!box) return;
+    const units = +box.dataset.units || 1, bh = parseFloat(getComputedStyle(box).getPropertyValue('--bh')) || 60;
+    const r = box.getBoundingClientRect(), wrap = document.querySelector('.wrap');
+    const below = (wrap ? Math.max(0, wrap.getBoundingClientRect().bottom - r.bottom) : 0) + (parseFloat(getComputedStyle(document.body).marginBottom) || 0);
+    const fixed = r.height - units * bh;  // the key, the day headings and the padding don't grow with the hours
+    const next = Math.max(36, Math.min(260, Math.floor((window.innerHeight - (r.top + window.scrollY) - below - fixed) / units)));
+    if (Math.abs(next - bh) >= 1) box.style.setProperty('--bh', next + 'px');
+  }
+  // when the window changes size, the calendar is drawn again for the new width (thin strips, one row), then fitted
+  let calCards = null, calTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(calTimer);
+    calTimer = setTimeout(() => {
+      const cs = $('icalendar'), old = cs && cs.querySelector('.bcal');
+      if (old && calCards) cs.replaceChild(calendarEl(calCards), old);
+      calFit();
+    }, 150);
+  });
+  function rich(parent, text) {
+    str(text).split(/\*\*(.+?)\*\*/g).forEach((p, i) => { if (!p) return; parent.appendChild(i % 2 ? el('b', null, p) : document.createTextNode(p)); });
+    return parent;
+  }
+  function bodyNodes(parent, text, links) {
+    const s = str(text);
+    const named = (Array.isArray(links) ? links : []).filter((l) => l && l.text && safeUrl(l.url));
+    const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pat = new RegExp('(' + named.map((l) => esc(str(l.text))).concat(['https?://[^\\s<>"\']+']).join('|') + ')', 'g');
+    let last = 0, m;
+    while ((m = pat.exec(s))) {
+      if (m.index > last) parent.appendChild(document.createTextNode(s.slice(last, m.index)));
+      const tok = m[0]; const nl = named.find((l) => l.text === tok); const href = nl ? safeUrl(nl.url) : safeUrl(tok);
+      parent.appendChild(href ? extLink(tok, href) : document.createTextNode(tok));
+      last = m.index + tok.length;
+    }
+    if (last < s.length) parent.appendChild(document.createTextNode(s.slice(last)));
+  }
+  function pointsList(arr) {
+    const ul = el('ul');
+    (Array.isArray(arr) ? arr : []).forEach((t) => { let s = str(t); const gap = s.startsWith('!!'); if (gap) s = s.slice(2).trim(); ul.appendChild(rich(el('li', gap ? 'gap' : null), s)); });
+    return ul;
+  }
+  function sourcesEl(arr) {
+    if (!Array.isArray(arr) || !arr.length) return null;
+    const d = el('div', 'isrc', arr.length > 1 ? 'Sources: ' : 'Source: ');
+    arr.forEach((s, i) => { if (i) d.appendChild(document.createTextNode(' · ')); const h = safeUrl(s && s.url); d.appendChild(h ? extLink(str(s.label) || h, h) : document.createTextNode(str(s && s.label))); });
+    return d;
+  }
+  // Email text that was saved with the wrong encoding shows "Iâ€™ve" for "I’ve". Turn such runs back into what was
+  // written; a run is changed only when it decodes cleanly, so real accented text is left alone.
+  const CP1252 = { 0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02C6: 0x88,
+    0x2030: 0x89, 0x0160: 0x8A, 0x2039: 0x8B, 0x0152: 0x8C, 0x017D: 0x8E, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94,
+    0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97, 0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B, 0x0153: 0x9C, 0x017E: 0x9E, 0x0178: 0x9F };
+  const MOJI_C = '[' + String.fromCharCode(0x80) + '-' + String.fromCharCode(0xBF) + 'ŒœŠšŸŽžƒˆ˜–—‘-„†-•…‰‹›€™]';
+  // a 2-byte character read as two (Â or Ã, then one more), a 3-byte one as three (â, then two), an emoji (ðŸ, then two)
+  const MOJI_RUN = new RegExp('[ÂÃ]' + MOJI_C + '|â' + MOJI_C + '{2}|ðŸ' + MOJI_C + '{2}', 'g');
+  function unMojibake(v) {
+    let s = str(v);
+    if (!/[ÂÃâð]/.test(s) || typeof TextDecoder === 'undefined') return s;
+    s = s.replace(/â€�/g, '”')  // a closing quote whose last byte was lost
+      .replace(/â€"/g, '–').replace(/â€'/g, '’');  // a dash / apostrophe whose last byte became a plain quote
+    const dec = new TextDecoder('utf-8', { fatal: true });
+    return s.replace(MOJI_RUN, (run) => {
+      const bytes = [];
+      for (const ch of run) { const c = ch.codePointAt(0), b = c < 0x100 ? c : CP1252[c]; if (b === undefined) return run; bytes.push(b); }
+      try { return dec.decode(new Uint8Array(bytes)); } catch (e) { return run; }
+    });
+  }
+  function mailEl(label, meta, body, links, sys) {
+    const m = el('div', 'mail'); m.appendChild(el('div', 'mlabel', label));
+    const dl = el('dl'); meta.forEach(([k, v]) => { if (!v) return; dl.appendChild(el('dt', null, k)); dl.appendChild(el('dd', null, unMojibake(v))); }); m.appendChild(dl);
+    const b = el('div', 'mbody');
+    if (sys) { b.appendChild(el('span', 'sys', str(sys))); b.appendChild(document.createTextNode('\n\n')); }
+    bodyNodes(b, unMojibake(body), links); m.appendChild(b); return m;
+  }
+  function postingLinks(parent, d) {
+    const ph = safeUrl(d.postingUrl), ah = safeUrl(d.applyUrl);
+    if (ph) parent.appendChild(extLink('Original job posting ↗', ph));
+    if (ah && ah !== ph) parent.appendChild(extLink('Application page ↗', ah));
+    const inv = inviteLink(d.jobId, d); if (inv) parent.appendChild(extLink('Invitation email ↗', inv));
+  }
+  // The link to the interview invitation email, if the card has one (inviteUrl).
+  function inviteLink(jobId, card) {
+    return (card && safeUrl(card.inviteUrl)) || null;
+  }
+  // ---------- Interview table: times, jumps to a row ----------
+  function interviewWhen(d) {
+    const slots = Array.isArray(d.slots) ? d.slots : [];
+    const conf = slots.find((x) => x && x.state === 'confirmed');
+    const fmt = (iso) => { const t = new Date(iso); return isNaN(t.getTime()) ? '' : t.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+    if (conf && fmt(conf.start)) return fmt(conf.start);
+    if (slots.length) return slots.length + ' times offered';
+    const parsed = parseSlots(d.bookedFor);
+    if (parsed.length) return (isTentative(d) ? parsed.length + ' times offered' : fmt(parsed[0].start));
+    return str(d.bookedFor).slice(0, 40) || '—';
+  }
+  let iSub = 'all';  // the Interviews sub-tab: 'all' or a stage key
+  function rowFor(hid) {  // an interview's row; if the open sub-tab hides it, go back to All interviews first
+    let t = document.getElementById(hid);
+    if (!t && iSub !== 'all' && interviews.has(hid.replace(/^interview-/, ''))) {
+      iSub = 'all'; history.replaceState(null, '', '#table'); renderInterviews(); t = document.getElementById(hid);
+    }
+    return t;
+  }
+  function xShow(t) {  // scroll the page so a row (or stage) sits just under the stage tabs and the header row
+    if (!t) return;
+    const wrap = t.closest && t.closest('.xwrap');
+    if (!wrap) { t.scrollIntoView({ block: 'start' }); return; }
+    const bar = $('intStrip'), th = wrap.querySelector('thead');
+    const off = (bar ? bar.offsetHeight : 0) + (th && th.offsetHeight ? th.offsetHeight : 0) + 4;
+    window.scrollTo({ top: Math.max(0, t.getBoundingClientRect().top + window.scrollY - off) });
+  }
+  function openCard(id) {  // a jump to an interview (Do now tab, calendar, links): open its whole row and highlight it
+    const s = document.getElementById('interview-' + id);
+    if (!s) return;
+    xRowSet(s, true);
+    s.classList.add('flash'); setTimeout(() => s.classList.remove('flash'), 2400);
+  }
+  document.addEventListener('click', (ev) => {  // any jump to an interview (lists, calendar, links) also expands it
+    const a = ev.target.closest && ev.target.closest('a[href^="#interview-"]');
+    if (!a) return;
+    openCard(decodeURIComponent(a.getAttribute('href').slice('#interview-'.length)));
+    if (location.hash === a.getAttribute('href')) setTimeout(route);  // same address again: no hashchange, so jump here
+  });
+  document.addEventListener('click', (ev) => {  // the table's stage tabs: clicking the open one again still scrolls to the top
+    const a = ev.target.closest && ev.target.closest('#intStrip a.isub');
+    if (a && location.hash === a.getAttribute('href')) setTimeout(route);
+  });
+  // ---------- The interviews spreadsheet ----------
+  // One table that always fits the window width: no sideways scrolling and no scroll area of its own (the page scrolls,
+  // and the header row stays under the stage tabs). Drag a header's right edge to trade width with the next column.
+  // Each link sits in the cell of the thing it opens.
+  // [header, key, default share of the width in percent].
+  const XCOLS = [['#', 'n', 1.39], ['Company · job', 'co', 3.58], ['Pay', 'pa', 2.8], ['Interview', 'wh', 6.49], ['Do now', 'do', 9.63],
+    ['Recruiter · background', 're', 5.91], ['Original email', 'em', 6.53], ['What you’d do', 'wd', 11.74],
+    ['What they ask for', 'rq', 15.41], ['The company', 'cp', 16.03], ['What to bring up', 'tb', 10.44], ['Ask them', 'ak', 10.05]];
+  // Your dragged widths are kept per browser, tagged with the set of columns they were made for: when the columns
+  // change, old widths would land on the wrong columns, so they're dropped and the defaults come back.
+  const XP_KEY = 'tracker.xcolpct', XSIG = XCOLS.map(([, k]) => k).sort().join(',');
+  const sameCols = (keys) => Array.isArray(keys) && keys.slice().sort().join(',') === XSIG;
+  let xp = {};
+  try {
+    const v = JSON.parse(localStorage.getItem(XP_KEY) || 'null');
+    xp = v && v.sig && v.p && sameCols(String(v.sig).split(',')) ? v.p : v && !v.sig && sameCols(Object.keys(v)) ? v : {};
+  } catch (e) { xp = {}; }
+  const xpSave = () => { try { localStorage.setItem(XP_KEY, JSON.stringify({ sig: XCOLS.map(([, k]) => k).join(','), p: xp, m: 2 })); } catch (e) {} };
+  function xPcts() {  // each column's share of the width, adding up to 100
+    const raw = XCOLS.map(([, k, def]) => { const v = Number(xp[k]); return v > 0 ? v : def; });
+    const sum = raw.reduce((a, b) => a + b, 0) || 1;
+    return raw.map((v) => (v * 100) / sum);
+  }
+  const xShown = (t) => [...t.querySelectorAll('col')].map((c) => parseFloat(c.style.width) || 0);  // the shares on screen now
+  function xSetPcts(t, p) { t.querySelectorAll('col').forEach((c, i) => { c.style.width = p[i].toFixed(3) + '%'; }); }
+  function xSizeTable(t) { xSetPcts(t, xPcts()); }
+  function xResizer(th, i, t) {
+    if (i >= XCOLS.length - 1) return;  // the last column has no neighbour to trade with
+    const h = el('span', 'xrz'); h.setAttribute('aria-hidden', 'true');
+    h.title = 'Drag to make this column wider or narrower. Double-click: this column and the next back to their default split.';
+    const keep = (p) => { xp = {}; XCOLS.forEach(([, k], j) => { xp[k] = Math.round(p[j] * 1000) / 1000; }); };
+    const live = () => (t.isConnected ? t : document.querySelector('#tableHost .xtab') || t);  // the table on screen, even after a redraw
+    h.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      const id = ev.pointerId, W = t.getBoundingClientRect().width || 1, x0 = ev.clientX, minP = (32 * 100) / W;
+      const p0 = xShown(t), own = xPcts();  // what you see now (maybe fitted to open cells), and your own widths
+      const lo = Math.min(0, minP - p0[i]), hi = Math.max(0, p0[i + 1] - minP);
+      const loO = Math.min(0, minP - own[i]), hiO = Math.max(0, own[i + 1] - minP);
+      h.classList.add('on'); document.body.classList.add('xresizing');
+      try { h.setPointerCapture(id); } catch (e) {}
+      let done = false;
+      const move = (e) => {
+        if (e.pointerId !== id) return;
+        const d = ((e.clientX - x0) * 100) / W, p = p0.slice(), o = own.slice();
+        const dp = Math.max(lo, Math.min(hi, d)), dO = Math.max(loO, Math.min(hiO, d));
+        p[i] += dp; p[i + 1] -= dp; o[i] += dO; o[i + 1] -= dO;
+        keep(o); xSetPcts(live(), p);  // your own widths take the same move; the screen shows it right away
+      };
+      const up = (e) => {
+        if (done || (e && e.pointerId !== id)) return;
+        done = true;
+        h.classList.remove('on'); document.body.classList.remove('xresizing');
+        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+        xpSave(); xFitCells(live()); xScheduleFit();
+      };
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+    });
+    h.addEventListener('dblclick', (ev) => {  // only this pair goes back to its default split, inside your own widths
+      ev.preventDefault();
+      const o = xPcts(), d0 = XCOLS[i][2], d1 = XCOLS[i + 1][2], sum = o[i] + o[i + 1];
+      o[i] = (sum * d0) / (d0 + d1); o[i + 1] = sum - o[i]; keep(o); xpSave(); xScheduleFit();
+    });
+    th.appendChild(h);
+  }
+  // Cells opened with "more" ("<id>|<column>"), and Expand all with the cells you closed under it. They survive
+  // redraws, and the page's own reload after an update.
+  const xKeep = (() => { try { const v = JSON.parse(sessionStorage.getItem('tracker.keep') || 'null'); sessionStorage.removeItem('tracker.keep'); return v; } catch (e) { return null; } })();
+  const xOpen = new Set(xKeep && Array.isArray(xKeep.open) ? xKeep.open : []);
+  const xShut = new Set(xKeep && Array.isArray(xKeep.shut) ? xKeep.shut : []);
+  let xAll = !!(xKeep && xKeep.all);
+  const xIsOpen = (k) => (xAll ? !xShut.has(k) : xOpen.has(k));
+  const xMark = (k, now) => { if (xAll) { if (now) xShut.delete(k); else xShut.add(k); } else if (now) xOpen.add(k); else xOpen.delete(k); };
+  function xToggle(td, k, isOpen, set) {  // a cell's "more ▾ / less ▴" button
+    const b = el('button', 'xmore', isOpen ? 'less ▴' : 'more ▾'); b.type = 'button'; b.dataset.xt = '1';
+    b.setAttribute('aria-expanded', String(isOpen));
+    b.addEventListener('click', () => {
+      const now = b.getAttribute('aria-expanded') !== 'true'; set(now); xMark(k, now);
+      b.textContent = now ? 'less ▴' : 'more ▾'; b.setAttribute('aria-expanded', String(now));
+      xScheduleFit(b.closest('tr'));
+    });
+    td.appendChild(b);
+  }
+  function xCell(td, id, key, node) {  // long text: its first lines; "more" shows the rest (only when it doesn't fit)
+    const k = id + '|' + key, on = xIsOpen(k), wrap = el('div', 'xclamp' + (on ? ' open' : ''));
+    wrap.appendChild(node); td.appendChild(wrap);
+    xToggle(td, k, on, (now) => wrap.classList.toggle('open', now));
+  }
+  const xCap = (w) => (parseFloat(getComputedStyle(w).fontSize) || 13) * 7.3;  // a closed cell's height
+  function xFitCells(root, fitted) {  // after layout: a cell whose text fits in its first lines gets no fade and no "more"
+    if (!root) return;
+    root.querySelectorAll('.xtab .xclamp').forEach((w) => {
+      if (fitted && w.classList.contains('open')) return;  // an open cell keeps the "less" it had at your own widths
+      const tall = w.scrollHeight > xCap(w) + 2;
+      w.classList.toggle('short', !tall);
+      const b = w.nextElementSibling; if (b && b.classList.contains('xmore')) b.hidden = !tall;
+    });
+  }
+  function xRowSet(tr, open) {  // open (or close) every cell of one row
+    tr.querySelectorAll('[data-xt]').forEach((b) => { if (!b.hidden && (b.getAttribute('aria-expanded') === 'true') !== open) b.click(); });
+  }
+
+  // ---------- Widths that read best for what's open ----------
+  // With cells open ("more", a row number, Expand all), the widths are worked out again for reading:
+  //  1. the quick-look columns (Pay, Interview, Do now, Recruiter) stay narrow, and the room they free goes to the
+  //     reading columns (email, job post, company, what to bring up, ask them), most of it to the ones you opened;
+  //  2. an open cell gets at least a comfortable line (about 30 characters of text), and at most about 75;
+  //  3. then width moves, a step at a time, to wherever it makes the table shorter and the open text take fewer lines.
+  // Each cell's height is estimated from the text it holds (height x width stays about the same as the width changes),
+  // and closed cells count only up to their cut-off height. With nothing open, your own widths are used.
+  // "Fit widths to open cells" turns this off.
+  let xFitOn = true;
+  try { xFitOn = localStorage.getItem('tracker.xautofit') !== 'off'; } catch (e) {}
+  const XBOUND = { co: [80, 300], pa: [56, 90], wh: [110, 320] };  // px; the # column keeps its width
+  const XOPENMIN = { co: 130, pa: 84, wh: 140, do: 200, re: 170 };  // px an open cell gets at least; text columns 210
+  // the quick-look columns while cells are open: [width while its own cells are closed, most it may widen to when open]
+  const XCOMPACT = { pa: [64, 84], wh: [140, 170], do: [200, 260], re: [160, 250] };
+  const XREAD = ['em', 'wd', 'rq', 'cp', 'tb', 'ak'];  // the reading columns, which get the room
+  const xBounds = (k, W, now) => (k === 'n' ? [now, now] : XBOUND[k] || [112, Math.max(112, Math.min(520, W * 0.34))]);
+  function xModel(t) {  // for each row and column: the cell's text "area", its fixed parts and its cut-off height
+    const rows = [];
+    t.querySelectorAll('tr.xrow').forEach((tr) => {
+      rows.push([...tr.children].map((td) => {
+        const r = td.getBoundingClientRect(), cs = getComputedStyle(td);
+        const pt = parseFloat(cs.paddingTop) || 0, pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + 1;
+        const cw = Math.max(1, r.width - pad), top = r.top + pt;
+        const clamp = td.querySelector(':scope > .xclamp'), btn = clamp && clamp.nextElementSibling;
+        if (!clamp) {
+          const rg = document.createRange(); rg.selectNodeContents(td);
+          return { pad, fix: 0, fa: Math.max(0, rg.getBoundingClientRect().bottom - top) * cw, ca: 0, cap: 0, open: true };
+        }
+        const cr = clamp.getBoundingClientRect();
+        return {
+          pad, fix: btn && btn.classList.contains('xmore') && !btn.hidden ? 18 : 0,
+          fa: Math.max(0, cr.top - top) * cw, ca: clamp.scrollHeight * Math.max(1, cr.width),
+          cap: xCap(clamp), open: clamp.classList.contains('open'),
+        };
+      }));
+    });
+    return rows;
+  }
+  // Only columns with an open cell may widen (beyond the room step 1 hands out); the others give width only where that
+  // really helps, and every move away from the step 1-2 widths has a small cost, so one open cell never reshuffles everything.
+  function xSolve(rows, W, start, grow) {
+    const k = start.length, LH = 19, lo = [], hi = [], w = start.slice();
+    XCOLS.forEach(([, key], i) => {
+      const b = xBounds(key, W, start[i]), cpt = XCOMPACT[key];
+      lo[i] = Math.min(b[0], start[i]);
+      hi[i] = grow[i] ? Math.max(b[1], start[i]) : start[i];
+      if (cpt) { hi[i] = grow[i] ? cpt[1] : Math.min(start[i], cpt[0]); lo[i] = Math.min(lo[i], hi[i]); }
+    });
+    // 1. the quick-look columns shrink to their compact width; the reading columns share what they free
+    let freed = 0;
+    for (let i = 0; i < k; i++) if (w[i] > hi[i]) { freed += w[i] - hi[i]; w[i] = hi[i]; }
+    if (freed > 0) {
+      const share = XCOLS.map(([, key], j) => (XREAD.includes(key) ? (grow[j] ? 2 : 1) * start[j] : 0));
+      const sum = share.reduce((a, b) => a + b, 0) || 1;
+      for (let j = 0; j < k; j++) if (share[j]) { w[j] += (freed * share[j]) / sum; hi[j] = Math.max(hi[j], w[j]); }
+    }
+    // 2. an open cell always gets at least a comfortable reading width, even when it isn't the tallest one in its row;
+    //    that width comes from the other columns' spare width
+    const want = XCOLS.map(([, key], i) => (grow[i] ? Math.min(hi[i], XOPENMIN[key] || 210) : 0));
+    for (let i = 0; i < k; i++) {
+      const need = want[i] - w[i]; if (need <= 0) continue;
+      const spare = w.map((x, j) => (j === i ? 0 : Math.max(0, x - Math.max(lo[j], want[j]))));
+      const sum = spare.reduce((a, b) => a + b, 0); if (sum <= 0) continue;
+      const take = Math.min(need, sum);
+      for (let j = 0; j < k; j++) w[j] -= (take * spare[j]) / sum;
+      w[i] += take;
+    }
+    for (let i = 0; i < k; i++) if (want[i] && w[i] >= want[i] - 0.5) lo[i] = Math.max(lo[i], Math.min(w[i], want[i]));
+    const ref = w.slice();  // 3. moves are measured from here, so steps 1 and 2 aren't undone
+    const drift = (v) => { let d = 0; for (let c = 0; c < k; c++) { const r = (v[c] - ref[c]) / ref[c]; d += r * r; } return 20 * d; };
+    const hOf = (c, w) => {
+      const cw = Math.max(8, w - c.pad); let h = c.fix + (c.fa ? Math.max(LH, c.fa / cw) : 0);
+      if (c.ca) { const ch = Math.max(LH, c.ca / cw); h += c.open ? ch : Math.min(ch, c.cap); }
+      return h;
+    };
+    // the table's height (each row as tall as its tallest cell), plus a share of every cell's own height: a narrow column
+    // full of text costs lines to read even when another cell sets the row's height
+    const cost = (v) => {
+      let T = drift(v);
+      rows.forEach((row) => { let mx = 0, sm = 0; for (let c = 0; c < k; c++) { const h = hOf(row[c], v[c]); sm += h; if (h > mx) mx = h; } T += mx + 0.2 * sm; });
+      return T;
+    };
+    let best = cost(w), sweeps = 0;
+    [64, 32, 16, 8, 4, 2].forEach((step) => {
+      while (sweeps++ < 600) {
+        let bi = -1, bj = -1, bc = best - 0.5;
+        for (let i = 0; i < k; i++) {
+          if (w[i] - step < lo[i]) continue;
+          for (let j = 0; j < k; j++) {
+            if (i === j || w[j] + step > hi[j]) continue;
+            w[i] -= step; w[j] += step; const c = cost(w); w[i] += step; w[j] -= step;
+            if (c < bc) { bc = c; bi = i; bj = j; }
+          }
+        }
+        if (bi < 0) break;
+        w[bi] -= step; w[bj] += step; best = bc;
+      }
+    });
+    return w;
+  }
+  let xFitRaf = 0, xAnchor = null, xShowAfter = null;  // xShowAfter: a row you jumped to, put back in view once widths settle
+  function xScheduleFit(anchor) {  // after an open or close; keeps the row you clicked where it is on screen
+    if (anchor && !xAnchor && anchor.getBoundingClientRect().height) xAnchor = { el: anchor, top: anchor.getBoundingClientRect().top };
+    if (xFitRaf) return;
+    xFitRaf = requestAnimationFrame(() => { xFitRaf = 0; const a = xAnchor; xAnchor = null; xAutoFit(a); });
+  }
+  function xAutoFit(a) {
+    const v = $('view-table'), t = v && !v.hidden ? v.querySelector('.xtab') : null, show = xShowAfter;
+    xShowAfter = null;
+    if (t && t.getBoundingClientRect().width && !matchMedia('(max-width: 1100px)').matches) {
+      xSizeTable(t); xFitCells(t);  // start from your own widths, so the result never drifts away from them
+      const grow = XCOLS.map(([, k]) => !!t.querySelector('tr.xrow td.x-' + k + ' .xclamp.open:not(.short), tr.xrow td.x-' + k + ' .xpay[aria-expanded="true"]'));
+      if (xFitOn && grow.some(Boolean)) {
+        const W = t.getBoundingClientRect().width, w = xSolve(xModel(t), W, xPcts().map((p) => (p * W) / 100), grow);
+        xSetPcts(t, w.map((x) => (x * 100) / W)); xFitCells(t, true);
+      }
+    }
+    if (show && show.isConnected) xShow(show);
+    else if (a && a.el.isConnected) window.scrollBy(0, a.el.getBoundingClientRect().top - a.top);
+  }
+
+  function xLinks(list, cls) {  // links of a cell; skips empty and repeated ones
+    const box = el('div', 'xlinks' + (cls ? ' ' + cls : '')), seen = new Set();
+    list.forEach(([t, u, c]) => { if (!t || !u || seen.has(u)) return; seen.add(u); box.appendChild(extLink(t, u, c)); });
+    return box.childNodes.length ? box : null;
+  }
+  const svcName = (u) => (/meet\.google\.com/i.test(u) ? 'Meet' : /teams\.(microsoft|live)\.com/i.test(u) ? 'Teams'
+    : /zoom\.us/i.test(u) ? 'Zoom' : /webex\.com/i.test(u) ? 'Webex' : '');
+  function rowLinks(d) {  // a row's links, by the cell they belong in
+    const au = safeUrl(d.actionUrl), lab = str(d.actionLabel) || 'Open';
+    const kind = !au ? '' : BOOK_RE.test(au) ? 'booking' : MEET_RE.test(au) ? 'meeting' : 'other';
+    const ml = meetingLinks(d), inv = inviteLink(d.jobId, d);
+    const email = safeUrl(d.email && d.email.url) || inv;
+    const post = safeUrl(d.postingUrl) || safeUrl(d.applyUrl), apply = safeUrl(d.applyUrl);
+    return {
+      post, apply: apply && apply !== post ? apply : null, kind,
+      whenBtn: kind === 'meeting' || kind === 'booking' ? [lab, au] : null,  // join or book: by the time
+      doBtn: kind === 'other' && au !== email ? [lab, au] : null,  // a step to take
+      mailMain: !!au && au === email,  // the row's main action is opening the email itself
+      meeting: ml.meeting, booking: ml.booking, confirm: safeUrl(d.confirmUrl), confirmMain: false,
+      email, invite: inv && inv !== email ? inv : null,
+    };
+  }
+  function xWhenMs(d) {  // start of the confirmed interview time; null while times are only offered
+    const slots = Array.isArray(d.slots) ? d.slots : [];
+    const conf = slots.find((x) => x && x.state === 'confirmed');
+    let t = NaN;
+    if (conf) t = new Date(conf.start).getTime();
+    else if (!slots.length && !isTentative(d)) { const ps = parseSlots(d.bookedFor); if (ps.length) t = ps[0].start.getTime(); }
+    return isNaN(t) ? null : t;
+  }
+  function untilText(ms) {  // "Today, in 3 h", "Tomorrow", "In 5 days", "2 days ago"
+    const now = Date.now(), a = new Date(now), b = new Date(ms); a.setHours(0, 0, 0, 0); b.setHours(0, 0, 0, 0);
+    const days = Math.round((b - a) / 864e5);
+    if (days === 0) { const h = Math.round((ms - now) / 36e5); return ms <= now ? 'Today, started' : h < 1 ? 'Within the hour' : 'Today, in ' + h + ' h'; }
+    if (days === 1) return 'Tomorrow';
+    if (days > 1) return 'In ' + days + ' days';
+    return days === -1 ? 'Yesterday' : -days + ' days ago';
+  }
+  function xPointsBox(points, sources, tail) {
+    const box = el('div'), ul = pointsList(points);
+    ul.querySelectorAll('li').forEach((li) => { if (/\(preferred\)\s*$/i.test(li.textContent)) li.classList.add('pref'); });
+    box.appendChild(ul); const s = sourcesEl(sources); if (s) box.appendChild(s); if (tail) box.appendChild(tail);
+    return box;
+  }
+  function xPoints(c, x, key, points, sources) {
+    if (!Array.isArray(points) || !points.length) { c.appendChild(el('span', 'xmuted', '—')); return; }
+    xCell(c, x.id, key, xPointsBox(points, sources));
+  }
+  // What each column shows. x = { n, id, d, stage, big, next, L: rowLinks(d) }
+  const XR = {
+    n: (c, x, tr) => {
+      const b = el('button', 'prio-n xnum' + (x.big ? ' big' : ''), String(x.n)); b.type = 'button';
+      b.title = 'Open or close every cell in this row';
+      b.addEventListener('click', () => { const any = [...tr.querySelectorAll('[data-xt]')].some((t) => !t.hidden && t.getAttribute('aria-expanded') !== 'true'); xRowSet(tr, any); });
+      c.appendChild(b);
+    },
+    co: (c, x) => {
+      const d = x.d, L = x.L;
+      c.appendChild(el('b', 'xco', (x.big ? '★ ' : '') + str(d.company)));
+      const t = str(d.role) || '—';
+      if (L.post) { const a = extLink(t + ' ↗', L.post, 'xtitle'); a.title = 'Open the job post'; c.appendChild(a); }
+      else c.appendChild(el('div', 'xtitle', t));
+      if (L.apply) { const l = xLinks([['Application ↗', L.apply]]); if (l) c.appendChild(l); }
+      if (d.location) c.appendChild(el('div', 'xsub', str(d.location)));
+    },
+    pa: (c, x) => {
+      const full = str(payText(x.d)), lab = payLabel(x.d).replace(/^up to /, '≤').replace(/^Pay not posted$/, 'Not posted');
+      const adds = full && !/^\s*(pay\s+)?not posted\.?\s*$/i.test(full);  // "Not posted" says nothing the label doesn't
+      const tone = lab === 'Not posted' ? ' xmuted' : x.big ? ' xbig' : '';
+      if (!adds) { c.appendChild(el('b', 'xpayl' + tone, lab)); return; }
+      const k = x.id + '|pa', on = xIsOpen(k);
+      const b = el('button', 'xpay' + tone); b.type = 'button'; b.dataset.xt = '1'; b.title = full;
+      const box = el('div', 'xsub xpayfull', full);
+      const set = (now) => { box.hidden = !now; b.textContent = lab + (now ? ' ▴' : ' ▾'); b.setAttribute('aria-expanded', String(now)); };
+      b.addEventListener('click', () => {
+        const now = b.getAttribute('aria-expanded') !== 'true'; set(now); xMark(k, now);
+        xScheduleFit(b.closest('tr'));
+      });
+      set(on); c.appendChild(b);
+      const src = /not posted/i.test(full) && /recruiter|email/i.test(full) ? 'from email' : /posted range/i.test(full) ? 'posted' : '';
+      if (src) c.appendChild(el('div', 'xsub', src));
+      c.appendChild(box);
+    },
+    wh: (c, x) => {
+      const d = x.d, L = x.L, booked = x.stage !== 'invited';
+      c.appendChild(el('b', 'xwhen', booked ? interviewWhen(d) : 'Not booked yet'));
+      const ms = booked ? xWhenMs(d) : null;
+      if (ms) {
+        const line = el('div', 'xchips'); line.appendChild(el('span', 'xchip' + (ms < Date.now() ? ' past' : ''), untilText(ms)));
+        if (x.next) line.appendChild(el('span', 'xchip next', 'Next'));
+        c.appendChild(line);
+      }
+      // once the call is over, its Join button goes back to being a plain link
+      const over = ms && ms < Date.now() - 90 * 60000, svc = L.meeting && svcName(L.meeting);
+      const btn = L.whenBtn && !(over && L.kind === 'meeting') ? [L.whenBtn[0], L.whenBtn[1], 'btn xbtn'] : [null, null];
+      const l = xLinks([btn, [svc ? 'Join ' + svc + ' ↗' : 'Join meeting ↗', L.meeting], ['Booking page ↗', L.booking],
+        ['Confirmation ↗', L.confirm, L.confirmMain ? 'btn xbtn' : null]]);
+      if (l) c.appendChild(l);
+      const more = booked && d.bookedFor ? str(d.bookedFor) : d.when ? 'When: ' + str(d.when) : '';
+      if (more) c.appendChild(el('div', 'xsub', more));
+    },
+    do: (c, x) => {
+      const d = x.d, st = istKey(d), tone = x.stage === 'invited' ? ITONE[st] : STONE[x.stage];
+      const top = el('div', 'xdotop');
+      const sel = el('select', 'istatus ' + tone); sel.id = 'ist-' + x.id; sel.setAttribute('aria-label', 'Interview status for ' + str(d.company));
+      Object.keys(ISTATUS).forEach((k) => { const o = el('option', null, ISTATUS[k]); o.value = k; if (k === st) o.selected = true; sel.appendChild(o); });
+      sel.disabled = !canWrite; sel.addEventListener('change', () => write(x.id, { status: sel.value }, 'interviews'));
+      top.appendChild(sel);
+      if (d.rank != null && d.rank !== '') { const p = el('span', 'xprio', 'P' + str(d.rank)); p.title = 'Priority ' + str(d.rank) + ', the same order as the Do now tab'; top.appendChild(p); }
+      c.appendChild(top);
+      if ((x.stage === 'rejected' || x.stage === 'offer') && x.stage !== st) c.appendChild(el('div', 'xsub', x.stage === 'offer' ? 'Job row says: offer' : 'Job row says: rejected'));
+      c.appendChild(el('b', 'xdo', str(d.doNow) || str(d.todo) || '—'));
+      const l = xLinks([[x.L.doBtn && x.L.doBtn[0], x.L.doBtn && x.L.doBtn[1], 'btn xbtn']]); if (l) c.appendChild(l);
+      if (d.action) xCell(c, x.id, 'do', rich(el('div', 'xsub'), d.action));
+    },
+    re: (c, x) => {
+      const p = x.d.person || {};
+      if (p.name) { c.appendChild(el('b', null, str(p.name))); if (p.title) c.appendChild(el('div', 'xsub', str(p.title))); }
+      if (Array.isArray(p.points) && p.points.length) { c.appendChild(el('div', 'xgap')); xCell(c, x.id, 're', xPointsBox(p.points, p.sources)); }
+      else if (!p.name) c.appendChild(el('span', 'xmuted', '—'));
+    },
+    em: (c, x) => {
+      const m = x.d.email, L = x.L;
+      const l = xLinks([['Open email ↗', L.email, L.mailMain ? 'btn xbtn' : 'xjump'], ['Invitation email ↗', L.invite]], 'xtop');
+      if (l) c.appendChild(l);
+      if (!m) { if (!l) c.appendChild(el('span', 'xmuted', '—')); return; }
+      xCell(c, x.id, 'em', mailEl('', [['From', m.from], ['Subject', m.subject], ['Date', m.date]], m.body, m.links, m.sysNote));
+    },
+    wd: (c, x) => { const po = x.d.posting || {}; xPoints(c, x, 'wd', po.responsibilities, null); },
+    rq: (c, x) => {
+      const d = x.d, po = d.posting || {}, f = FIT[d.fitLevel];
+      if (f) {
+        const fl = el('div', 'xfitline'); fl.appendChild(el('span', 'pill ' + f[1], f[0]));
+        if (d.fit) fl.appendChild(el('span', 'xfitwhy', str(d.fit)));
+        c.appendChild(fl);
+      }
+      const tail = d.verdict ? el('div', 'xsub xverdict', 'Verdict: ' + str(d.verdict)) : null;
+      if (Array.isArray(po.requirements) && po.requirements.length) xCell(c, x.id, 'rq', xPointsBox(po.requirements, po.sources, tail));
+      else if (tail) c.appendChild(tail);
+      else if (!f) c.appendChild(el('span', 'xmuted', '—'));
+    },
+    cp: (c, x) => { const ci = x.d.companyInfo || {}; xPoints(c, x, 'cp', ci.points, ci.sources); },
+    tb: (c, x) => { xPoints(c, x, 'tb', x.d.talking, null); },
+    ak: (c, x) => { xPoints(c, x, 'ak', x.d.ask, null); },
+  };
+  function sheetEl(staged) {
+    const wrap = el('div', 'xwrap'); const t = el('table', 'xtab'); const thead = el('thead'); const hr = el('tr');
+    const cg = el('colgroup'); XCOLS.forEach(([, k]) => { const c = el('col'); c.dataset.k = k; cg.appendChild(c); }); t.appendChild(cg);
+    XCOLS.forEach(([l, k], i) => { const th = el('th', 'x-' + k, l); th.title = l; xResizer(th, i, t); hr.appendChild(th); });
+    thead.appendChild(hr); t.appendChild(thead); xSizeTable(t);
+    // the soonest interview still to come gets a "Next" tag
+    let nextId = null, nextMs = Infinity;
+    staged.forEach(({ id, d, stage }) => { if (stage !== 'booked') return; const ms = xWhenMs(d); if (ms && ms > Date.now() && ms < nextMs) { nextMs = ms; nextId = id; } });
+    const tb = el('tbody'); let n = 0;
+    const DOT = { invited: 'offer', booked: 'interview', done: 'review', rejected: 'rejected', offer: 'offer' };
+    STAGES.forEach((sg, i) => {
+      if (iSub !== 'all' && iSub !== sg.key) return;  // a stage sub-tab shows only its own rows
+      // Within a stage: highest pay first (top of the posted range), then the soonest time, then your rank.
+      const inStage = staged.filter((r) => r.stage === sg.key)
+        .sort((a, b) => (payTop(payText(b.d)) - payTop(payText(a.d))) || (firstSlot(a.d) - firstSlot(b.d)) || ((a.d.rank ?? 99) - (b.d.rank ?? 99)));
+      const gr = el('tr', 'xgroup ' + sg.key + (inStage.length ? '' : ' slim')); gr.id = 'istage-' + sg.key;
+      const gtd = el('td'); gtd.colSpan = XCOLS.length;
+      const lab = el('span', 'xglab'); lab.appendChild(el('span', 'dot ' + DOT[sg.key]));
+      lab.appendChild(document.createTextNode((i + 1) + '. ' + sg.title + ' · ' + inStage.length));
+      lab.appendChild(el('span', 'xgblurb', inStage.length ? sg.blurb : '— none right now'));
+      const nx = inStage.find((r) => r.id === nextId);
+      if (nx) { const a = el('a', 'xnext', 'Next: ' + interviewWhen(nx.d) + ' — ' + str(nx.d.company) + ' ↓'); a.href = '#interview-' + nx.id; lab.appendChild(a); }
+      gtd.appendChild(lab); gr.appendChild(gtd); tb.appendChild(gr);
+      inStage.forEach(({ id, d }) => tb.appendChild(sheetRow(++n, id, d, sg.key, id === nextId)));
+    });
+    t.appendChild(tb); wrap.appendChild(t);
+    // Above the table: open every long cell at once, the reading fit, and your column widths back
+    const box = el('div', 'xsheet'); const bar = el('div', 'xbar');
+    const ex = el('button', 'btn ghost2', xAll ? 'Collapse all cells' : 'Expand all cells'); ex.type = 'button';
+    ex.addEventListener('click', () => { xAll = !xAll; xOpen.clear(); xShut.clear(); renderInterviews(); });
+    const fit = el('label', 'xfitopt'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = xFitOn;
+    cb.addEventListener('change', () => { xFitOn = cb.checked; try { localStorage.setItem('tracker.xautofit', xFitOn ? 'on' : 'off'); } catch (e) {} xScheduleFit(); });
+    fit.appendChild(cb); fit.appendChild(document.createTextNode(' Fit widths to open cells'));
+    fit.title = 'When cells are open, the columns you are reading get the width they need; with nothing open, your own widths are used.';
+    const rw = el('button', 'btn ghost2 xreset', 'Reset column widths'); rw.type = 'button';
+    rw.addEventListener('click', () => { xp = {}; xpSave(); xScheduleFit(); });
+    bar.appendChild(ex); bar.appendChild(fit); bar.appendChild(rw);
+    bar.appendChild(el('span', 'xhint', 'Drag a heading’s edge to resize. Click a row number to open the whole row.'));
+    box.appendChild(bar); box.appendChild(wrap); return box;
+  }
+  function sheetRow(n, id, d, stage, next) {
+    const tr = el('tr', 'xrow stage-' + stage); tr.id = 'interview-' + id;
+    const x = { n, id, d, stage, next, big: isBig(d), L: rowLinks(d) };
+    XCOLS.forEach(([label, k]) => { const c = el('td', 'x-' + k); c.dataset.label = label; tr.appendChild(c); if (XR[k]) XR[k](c, x, tr); });
+    return tr;
+  }
+  function xStick() {  // once the table page shows: the header row sticks just under the stage tabs; long cells get "more"
+    const v = $('view-table'), s = $('intStrip'); if (!v || !s || v.hidden) return;
+    v.style.setProperty('--xstick', s.offsetHeight + 'px'); xFitCells(v); xScheduleFit();
+  }
+  window.addEventListener('resize', xStick);
+  if (window.ResizeObserver && $('intStrip')) new ResizeObserver(() => { const v = $('view-table'), s = $('intStrip'); if (v && s && !v.hidden) v.style.setProperty('--xstick', s.offsetHeight + 'px'); }).observe($('intStrip'));
+  function renderInterviews() {
+    const active = document.activeElement;
+    if (active && active.tagName === 'SELECT' && active.closest('#intHost')) { /* a select keeps focus across re-render via its id */ }
+    const list = [...interviews.entries()].map(([id, d]) => ({ id, d }))
+      .sort((a, b) => ((a.d.order ?? 99) - (b.d.order ?? 99)) || str(a.d.company).localeCompare(str(b.d.company)));
+    intByJob = {}; list.forEach((r) => { if (r.d.jobId) intByJob[r.d.jobId] = r.id; });
+    const staged = list.map((r) => ({ ...r, stage: stageOf(r.d) }));
+    $('n-int').textContent = String(staged.filter((r) => r.stage === 'booked').length);  // the Interview calendar tab: booked interviews
+    const strip = $('intStrip'), host = $('intHost'), thost = $('tableHost'); strip.replaceChildren(); host.replaceChildren(); thost.replaceChildren();
+    $('n-tab').textContent = String(staged.length);
+    renderPriority(staged);
+    if (!list.length) {
+      const msg = iloaded ? 'No interview invites yet. When an employer asks to talk with you, it shows up here.' : 'Loading your interview invites…';
+      host.appendChild(el('div', 'note', msg)); thost.appendChild(el('div', 'note', msg)); return;
+    }
+    // Same component and behaviour as the Applications tab's "Jump to" bar: one chip per stage with its count; a click
+    // scrolls to that stage's heading below. Cards are grouped under the stage headings, left-to-right order top to bottom.
+    const DOT = { invited: 'offer', booked: 'interview', done: 'review', rejected: 'rejected', offer: 'offer' };
+    const SHORT = { invited: 'Invited', booked: 'Booked', done: 'Interviewed', rejected: 'No longer considered', offer: 'Got an offer' };
+    // Sub-tabs of the Interview table: All, then one per stage. A tab shows only that stage's rows (address #table/<stage>).
+    strip.setAttribute('role', 'tablist'); strip.setAttribute('aria-label', 'Interview stages');
+    const tab = (key, label, n, dot) => {
+      const a = el('a', 'isub'); a.href = key === 'all' ? '#table' : '#table/' + key; a.dataset.stage = key;
+      a.setAttribute('role', 'tab'); a.setAttribute('aria-selected', String(iSub === key)); a.setAttribute('aria-pressed', String(iSub === key));
+      if (dot) a.appendChild(el('span', 'dot ' + dot));
+      a.appendChild(document.createTextNode(label + ' ')); a.appendChild(el('span', 'jc', String(n)));
+      strip.appendChild(a);
+    };
+    tab('all', 'All interviews', staged.length, null);
+    strip.appendChild(el('span', 'warrow sep', '·'));
+    STAGES.forEach((sg, i) => {
+      if (i > 0) strip.appendChild(el('span', 'warrow', sg.key === 'offer' ? '|' : '→'));
+      tab(sg.key, SHORT[sg.key], staged.filter((r) => r.stage === sg.key).length, DOT[sg.key]);
+    });
+    // One spreadsheet for all interviews: a header row of every field and section, one numbered row per job, grouped
+    // by stage (the Jump to chips scroll to the group rows). Long cells show their first lines; "more" opens them.
+    thost.appendChild(sheetEl(staged));  // the table has its own page (Interview table); the Interviews page keeps the calendar
+    const booked = staged.filter((r) => r.stage === 'booked');
+    if (!booked.length) host.appendChild(el('div', 'note', 'No booked interviews right now. When you book one, it shows on this calendar.'));
+    if (booked.length) {
+      const cs = el('section', 'istage calsec'); cs.id = 'icalendar';
+      const head = el('div', 'ghead'); const h2 = el('h2'); h2.appendChild(el('span', 'dot interview')); h2.appendChild(document.createTextNode('Interview calendar'));
+      head.appendChild(h2); head.appendChild(el('span', 'count', booked.length + (booked.length === 1 ? ' interview' : ' interviews'))); cs.appendChild(head);
+      calCards = booked; cs.appendChild(calendarEl(booked));
+      host.appendChild(cs);
+      calFit();
+    }
+    if (pendingScroll) { const target = document.getElementById(pendingScroll); if (target) { xShow(target); xShowAfter = target; pendingScroll = null; } }
+    xStick();
+  }
+
+  // ---------- Quick-jump bookmarks on the Applications tab ----------
+  document.querySelectorAll('nav.jump a[data-jump]').forEach((a) => a.addEventListener('click', (ev) => {
+    ev.preventDefault();  // scroll without changing the address, so Back still leaves the page normally
+    const k = a.dataset.jump, id = k === 'after' ? 'after-h' : 'h-' + k;
+    if (!document.getElementById(id) && filter !== 'all') {  // a status filter hides that section: show all first
+      filter = 'all'; document.querySelectorAll('.tile[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.f === 'all')));
+      render();
+    }
+    const t = document.getElementById(id);
+    if (t) (t.closest('section') || t).scrollIntoView({ block: 'start' });
+  }));
+
+  // ---------- Views: #applications (default), #funnel, #donow, #interviews, #table; #job-<id> jumps to a job's row ----------
+  let pendingScroll = null;
+  function jumpToJob(anchor) {
+    let t = document.getElementById(anchor);
+    if (!t && filter !== 'all') {
+      filter = 'all'; document.querySelectorAll('.tile[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.f === 'all')));
+      render(); t = document.getElementById(anchor);
+    }
+    if (!t) { pendingJob = anchor; return; }
+    t.scrollIntoView({ block: 'center' });
+    t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 2400);
+  }
+  function route() {
+    const h = decodeURIComponent(location.hash.slice(1));
+    // #table[/<stage>] and #interview-<id> open the Interview table page (#interviews/<stage> is the older address for it)
+    const isTable = h === 'table' || h.indexOf('table/') === 0 || h.indexOf('interviews/') === 0 || h.indexOf('interview-') === 0;
+    const view = isTable ? 'table' : h === 'interviews' || h === 'calendar' ? 'interviews' : h === 'donow' ? 'donow' : h === 'funnel' ? 'funnel' : 'apps';
+    $('view-apps').hidden = view !== 'apps'; $('view-interviews').hidden = view !== 'interviews';
+    $('view-funnel').hidden = view !== 'funnel'; $('view-table').hidden = view !== 'table'; $('view-donow').hidden = view !== 'donow';
+    if (view === 'table') xStick();
+    document.body.classList.toggle('calview', view === 'interviews');  // the calendar tab: little bottom margin, the calendar fills it
+    if (view === 'interviews') calFit();
+    document.querySelectorAll('.vtab').forEach((t) => { if (t.dataset.view === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current'); });
+    if (h === 'table' || h.indexOf('table/') === 0 || h.indexOf('interviews/') === 0) {  // the table's stage sub-tab in the address
+      const want = h.slice(h.indexOf('/') + 1);
+      const sub = STAGES.some((s) => s.key === want) ? want : 'all';
+      if (sub !== iSub) { iSub = sub; renderInterviews(); }
+      const bar = $('intStrip'), host = $('tableHost');  // back to the top of the table (the bar itself stays stuck at the top)
+      if (bar && host) { const y = host.getBoundingClientRect().top + window.scrollY - bar.offsetHeight; if (window.scrollY > y + 1) window.scrollTo({ top: Math.max(0, y) }); }
+    }
+    if (h.indexOf('interview-') === 0) {
+      const target = rowFor(h);
+      if (target) { xShow(target); xShowAfter = target; xScheduleFit(); } else pendingScroll = h;
+    }
+    if (h.indexOf('job-') === 0) jumpToJob(h);
+  }
+  window.addEventListener('hashchange', route);
+  route();
+
+  // ---------- After the page reloads itself (the small script at the end of the page) ----------
+  // Before it reloads, that script saves your place through trackerKeep; after the reload it comes back here: open cells,
+  // filters and the scroll position.
+  window.trackerKeep = () => ({ open: [...xOpen], shut: [...xShut], all: xAll, f: filter, af: afilter });
+  // ... and it waits while an Issues box or a status note holds text that isn't saved yet, or a column edge is being dragged
+  window.trackerBusy = () => {
+    const norm = (v) => str(v).replace(/\r\n?/g, '\n').trim();
+    const dirty = [...document.querySelectorAll('textarea[id^="is-"], textarea[id^="rn-"]')].some((t) => {
+      const r = rows.get(t.id.slice(3)) || {};
+      return norm(t.value) !== norm(t.id.indexOf('is-') === 0 ? r.issue : r.responseNote);
+    });
+    return dirty || document.body.classList.contains('xresizing');
+  };
+  if (xKeep && xKeep.hash === location.hash) {
+    pendingScroll = null; pendingJob = null; xShowAfter = null;  // a jump in the address was done before the reload: not again
+    const pick = (attr, v) => {  // a filter tile, if it still exists on this version of the page
+      const b = v ? [...document.querySelectorAll('.tile[' + attr + ']')].find((x) => x.getAttribute(attr) === String(v)) : null;
+      if (!b) return null;
+      document.querySelectorAll('.tile[' + attr + ']').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      return String(v);
+    };
+    const f = pick('data-f', xKeep.f); if (f) filter = f;
+    const af = pick('data-af', xKeep.af); if (af) afilter = af;
+    if (xKeep.y > 0) {  // back to where you were once the rows are drawn; stops if you scroll first
+      let tries = 0, stop = false;
+      ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach((e) => window.addEventListener(e, () => { stop = true; }, { once: true, passive: true }));
+      (function back() {
+        if (stop) return;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        if (max >= xKeep.y - 2) { window.scrollTo(0, xKeep.y); if (Math.abs(window.scrollY - xKeep.y) < 3) return; }
+        else if ((loaded && iloaded) || tries >= 80) { window.scrollTo(0, Math.max(0, max)); return; }  // the page got shorter
+        tries++; setTimeout(back, 100);
+      })();
+    }
+  }
+  // countdowns ("Tomorrow", "In 5 days") and the Next tag follow the clock: redraw every 5 minutes when you aren't busy
+  setInterval(() => {
+    const a = document.activeElement;
+    if ((a && /^(SELECT|TEXTAREA|INPUT)$/.test(a.tagName)) || document.body.classList.contains('xresizing')) return;
+    renderInterviews();
+  }, 300000);
+
+  $('addForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault(); if (!db) return;
+    const company = $('a-company').value.trim(), role = $('a-role').value.trim(); if (!company || !role) return;
+    const status = $('a-status').value;
+    const slug = (company + '-' + role).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) + '-' + Date.now().toString(36);
+    const data = { company, role, url: $('a-url').value.trim(), location: $('a-loc').value.trim(), status, issue: $('a-issue').value.trim(),
+      source: 'manual', priority: 2, createdAt: new Date().toISOString() };
+    if (status === 'applied') data.appliedOn = today();
+    $('a-btn').disabled = true;
+    try { await db.collection('jobs').doc(slug).set(data); ['a-company', 'a-role', 'a-url', 'a-loc', 'a-issue'].forEach((i) => { $(i).value = ''; }); toast('Added'); }
+    catch (e) { toast('Could not add. Try again.'); }
+    finally { $('a-btn').disabled = false; }
+  });
+
+  render();
+  renderInterviews();
+  const timer = setTimeout(() => { if (!loaded) setState('Can’t reach your tracker data yet. The list fills in as soon as it connects.', true); }, 10000);
+
+  (async () => {
+    const c = window.TrackerServer;
+    if (!c || !c.db) { clearTimeout(timer); setState('Start the tracker server to see your applications: run  python tracker.py start  then open http://localhost:8787.', true); return; }
+    db = c.db;
+    if (typeof c.info === 'function') {
+      c.info().then((i) => { const u = i && Array.isArray(i.lan) && i.lan[0]; if (u) { $('where-url').textContent = u.replace(/^https?:\/\//, ''); $('where').hidden = false; } }).catch(() => {});
+    }
+    $('addForm').hidden = !canWrite;
+    db.collection('jobs').onSnapshot((snap) => {
+      rows = new Map(snap.docs.map((d) => [d.id, d.data()]));
+      if (!snap.metadata.fromCache) { loaded = true; clearTimeout(timer); setState(null); }
+      render();
+      renderInterviews();  // a card's stage also follows its job row's response
+    }, () => { clearTimeout(timer); loaded = true; setState('The tracker stopped updating. Reload the page to reconnect.', true); });
+    db.collection('interviews').onSnapshot((snap) => {
+      interviews = new Map(snap.docs.map((d) => [d.id, d.data()]));
+      if (!snap.metadata.fromCache) iloaded = true;
+      renderInterviews(); render();
+    }, () => { iloaded = true; renderInterviews(); });
+  })();
+})();
+</script>
+<script>
+// ---------- Always the newest version of this page ----------
+// Its own small script, so it keeps working even when a half-edited page breaks the main one. Every 10 seconds it
+// fetches the page. When the copy on disk differs from this one (the same new version seen twice in a row, so an edit
+// that is still being saved isn't loaded), it saves your place and reloads. It waits while you type, pick from a menu,
+// drag a column edge or have text that isn't saved yet, and it reloads at most 3 times in 5 minutes so it can't loop.
+(function stayCurrent() {
+  const norm = (t) => String(t || '').replace(/\r\n?/g, '\n');
+  const sig = (t) => { let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return t.length + ':' + h; };
+  // this page's own styles and main script, word for word: the first check compares them with the copy on disk, so an
+  // edit saved while this page was still loading is noticed too
+  const own = [...document.querySelectorAll('style')].map((x) => x.textContent)
+    .concat([...document.scripts].filter((x) => !x.src && x !== document.currentScript).map((x) => x.text))
+    .filter((x) => x.length > 2000).map(norm);
+  const busy = () => {
+    const a = document.activeElement, tag = a && a.tagName;
+    const typing = tag === 'TEXTAREA' || tag === 'SELECT' || !!(a && a.isContentEditable)
+      || (tag === 'INPUT' && !/^(checkbox|radio|button|submit|range|color)$/i.test(a.type));
+    const unsent = [...document.querySelectorAll('#addForm input')].some((f) => String(f.value || '').trim());
+    let main = false; try { main = !!(window.trackerBusy && window.trackerBusy()); } catch (e) {}
+    return typing || unsent || main || document.body.classList.contains('xresizing');
+  };
+  const recent = () => { try { const now = Date.now(); return JSON.parse(sessionStorage.getItem('tracker.reloads') || '[]').filter((t) => now - t < 300000); } catch (e) { return []; } };
+  const reload = () => {
+    try {
+      const list = recent(); list.push(Date.now()); sessionStorage.setItem('tracker.reloads', JSON.stringify(list));
+      let keep = {}; try { keep = (window.trackerKeep && window.trackerKeep()) || {}; } catch (e) {}
+      sessionStorage.setItem('tracker.keep', JSON.stringify(Object.assign(keep, { y: Math.round(window.scrollY), hash: location.hash })));
+    } catch (e) {}
+    location.reload();
+  };
+  let base = null, seen = null;
+  async function check() {
+    let text;
+    try {
+      const r = await fetch(location.pathname + '?page-check=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      text = norm(await r.text());
+    } catch (e) { return; }  // the server is stopped: try again next time
+    const s = sig(text);
+    const changed = base === null ? own.some((x) => !text.includes(x)) : s !== base;
+    if (!changed) { if (base === null) base = s; seen = null; return; }
+    if (seen !== s) { seen = s; return; }                      // the same new version twice in a row first
+    if (busy()) return;                                        // then wait until you're done
+    if (recent().length >= 3) { base = s; seen = null; return; }  // 3 reloads in 5 minutes: keep this one, stop for now
+    reload();
+  }
+  check(); setInterval(check, 10000);
+})();
+</script>
+</body>
+</html>
