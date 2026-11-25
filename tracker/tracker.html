@@ -155,6 +155,39 @@ select.track.auto { border-style: dashed; }
 select.track:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .trk { display: block; margin-top: 4px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
 #funnelHost { display: flex; flex-direction: column; gap: 10px; }
+/* Funnel charts at the bottom of the Funnel tab. Outcome colors run best to worst: blues, a gray midpoint, reds. */
+.fviz { display: flex; flex-direction: column; gap: 30px; padding-top: 6px;
+  --fv-bar: #2a78d6; --fv-contact: #1c5cab; --fv-review: #6da7ec; --fv-waiting: #cecdc5; --fv-stale: #ee8584; --fv-rejected: #b8302f; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .fviz {
+  --fv-bar: #3987e5; --fv-contact: #9ec5f4; --fv-review: #3987e5; --fv-waiting: #3d4045; --fv-stale: #cc5a59; --fv-rejected: #f2a3a2; } }
+:root[data-theme="dark"] .fviz { --fv-bar: #3987e5; --fv-contact: #9ec5f4; --fv-review: #3987e5; --fv-waiting: #3d4045; --fv-stale: #cc5a59; --fv-rejected: #f2a3a2; }
+.fv-block { display: flex; flex-direction: column; gap: 10px; }
+.fv-block h3 { font-family: var(--f-display); font-weight: 600; font-size: 18px; margin: 0; }
+.fv-sub { margin: 0; color: var(--muted); font-size: 13px; }
+.fv-rows { display: grid; grid-template-columns: minmax(150px, 300px) minmax(0, 1fr) minmax(96px, auto); column-gap: 14px; row-gap: 10px; align-items: center; }
+.fv-lab { font-size: 13.5px; color: var(--ink); overflow-wrap: anywhere; }
+.fv-lab small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.fv-val { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fv-track { position: relative; height: 20px; min-width: 0; }
+.fv-track::before { content: ""; position: absolute; left: 0; top: -5px; bottom: -5px; width: 1px; background: var(--rule-strong); }
+.fv-bar { height: 100%; background: var(--fv-bar); border-radius: 0 4px 4px 0; }
+.fv-stack { position: relative; z-index: 1; display: flex; gap: 2px; height: 100%; }
+.fv-seg { height: 100%; min-width: 2px; }
+.fv-stack > .fv-seg:last-child { border-radius: 0 4px 4px 0; }
+.fv-contact { background: var(--fv-contact); } .fv-review { background: var(--fv-review); } .fv-waiting { background: var(--fv-waiting); }
+.fv-stale { background: var(--fv-stale); } .fv-rejected { background: var(--fv-rejected); }
+.fv-grid { position: absolute; top: -5px; bottom: -5px; width: 1px; background: var(--rule); }
+.fv-axis { height: 16px; } .fv-axis::before { display: none; }
+.fv-tick { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fv-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); }
+.fv-key { display: inline-flex; align-items: center; gap: 6px; }
+.fv-sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.fv-bar, .fv-seg { cursor: default; }
+.fv-bar:hover, .fv-seg:hover { filter: brightness(0.9); }
+.fv-bar:focus-visible, .fv-seg:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.fv-tip { position: fixed; z-index: 60; pointer-events: none; max-width: 340px; padding: 6px 9px; border-radius: 6px; font-size: 12.5px;
+  background: var(--ink); color: var(--surface); box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+@media (max-width: 700px) { .fv-rows { grid-template-columns: minmax(0, 1fr) auto; } .fv-lab { grid-column: 1 / -1; margin-bottom: -6px; } }
 .funnel table { min-width: 760px; }
 .funnel td.num, .funnel th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .funnel td.rate.some { color: var(--ok); font-weight: 600; } .funnel td.rate.zero { color: var(--err); font-weight: 600; }
@@ -234,11 +267,29 @@ ol.prio-list .prio-n.big, ol.qlist2 li:first-child .prio-n.big { background: #fd
 .bev b { font-weight: 600; font-size: 12px; }
 .bev .brole { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bev:hover { filter: brightness(0.96); outline: 1px solid var(--ink); }
+/* past interviews: kept, but shrunk and muted */
+.bev.past { opacity: .55; padding: 2px 3px; font-size: 10px; filter: grayscale(.6); }
+.bev.past b { display: block; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bev.past b .itype { display: none; }
+.bev.past:hover { opacity: 1; filter: none; }
+/* past interviews folded into one column on the left */
+.btn.bfold { padding: 2px 10px; font-size: 12px; }
+.bday.bfoldhd { font: inherit; font-size: 10.5px; color: var(--muted); background: var(--paper); border: 0; border-bottom: 1px solid var(--rule-strong); border-left: 1px solid var(--rule); cursor: pointer; }
+.bday.bfoldhd:hover { color: var(--ink); }
+.bcol.bfoldcol { background: var(--paper); border-right: 2px solid var(--rule-strong); overflow-y: auto; padding: 3px; box-sizing: border-box; display: flex; flex-direction: column; gap: 3px; }
+.bfoldev { display: block; padding: 2px 4px; border-radius: 4px; font-size: 10px; line-height: 1.25; color: var(--muted); text-decoration: none; background: var(--surface); border: 1px solid var(--rule); opacity: .8; }
+.bfoldev b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bfoldev:hover { opacity: 1; color: var(--ink); border-color: var(--ink); }
+.bkey.pastkey::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 3px; background: var(--rule-strong); opacity: .6; }
 .bev.todo { --c: var(--todo); --cb: var(--todo-bg); } .bev.ok { --c: var(--ok); --cb: var(--ok-bg); }
 .bev.warn { --c: #6b5ca5; --cb: #ece8f6; } .bev.accent { --c: var(--accent); --cb: var(--paper); }
 .bev.big { --c: #b7791f; --cb: #fdefc8; box-shadow: 0 0 0 1px #b7791f; }  /* $100k+ jobs: gold, with a star */
 .bev.big b { color: #7a4f0e; }
 .bkey.big::before { background: #fdefc8; border-left: 3px solid #b7791f; }
+/* HR or technical round: a small tag on calendar blocks and in the table */
+.itype { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; padding: 0 5px; border-radius: 4px; line-height: 16px; vertical-align: 1px; margin-right: 4px; white-space: nowrap; }
+.itype.hr { background: #e3f0e6; color: #23663a; } .itype.tech { background: #e4e9fb; color: #2f4aa0; }
+.bkey.ikey::before { display: none; }
 .bev.confirmed { background: var(--cb); border-left: 3px solid var(--c); }
 .bev.offered { border: 1px dashed var(--c); background: repeating-linear-gradient(135deg, var(--cb) 0 6px, var(--surface) 6px 12px); }  /* room to scroll the last stages up under the bar */
 section.istage.invited .ghead { border-top-color: var(--warn); } section.istage.booked .ghead { border-top-color: var(--ok); }
@@ -456,6 +507,7 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     <div class="spec" id="funnelSummary"></div>
     <div id="funnelHost"></div>
     <p class="repeat" id="repeatNote" hidden></p>
+    <section class="fviz" id="funnelViz" aria-label="Funnel charts"></section>
   </div>
 
   <div class="view" id="view-interviews" hidden>
@@ -692,8 +744,100 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     t.appendChild(tb); sc.appendChild(t); host.appendChild(sc);
   }
 
+  // ---------- Funnel charts (bottom of the Funnel tab) ----------
+  // 1. The funnel: how many applications reached each step, as a share of all applications (one bar per step).
+  // 2. Outcomes by role family: one bar per family, as long as the applications sent, split from the best outcome to the
+  //    worst; the contact rate follows each bar. Hover or focus any bar or piece for its numbers; the tables above hold
+  //    the same numbers as text. The colors were chosen to stay apart for color-blind readers, in light and dark mode.
+  const FV_OUT = [['contact', 'Contact (screen, interview, offer)'], ['review', 'Under review'], ['waiting', 'Waiting, under 3 weeks'],
+    ['stale', 'No answer past 3 weeks'], ['rejected', 'Rejected']];
+  const fvTip = el('div', 'fv-tip'); fvTip.setAttribute('role', 'tooltip'); fvTip.hidden = true; document.body.appendChild(fvTip);
+  function fvHover(node, text) {
+    node.tabIndex = 0; node.setAttribute('role', 'img'); node.setAttribute('aria-label', text);
+    const show = (x, y) => {
+      fvTip.textContent = text; fvTip.hidden = false;
+      const w = fvTip.offsetWidth, h = fvTip.offsetHeight;
+      fvTip.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 12)) + 'px';
+      fvTip.style.top = (y - h - 12 < 8 ? y + 18 : y - h - 12) + 'px';
+    };
+    node.addEventListener('mousemove', (e) => show(e.clientX, e.clientY));
+    node.addEventListener('mouseleave', () => { fvTip.hidden = true; });
+    node.addEventListener('focus', () => { const r = node.getBoundingClientRect(); show(r.left + Math.min(r.width / 2, 120), r.top); });
+    node.addEventListener('blur', () => { fvTip.hidden = true; });
+  }
+  const fvPct = (a, b) => { const p = b ? (a * 100) / b : 0; return a > 0 && p < 1 ? '<1%' : Math.round(p) + '%'; };  // 1 of 274 isn't "0%"
+  function fvTicks(max) {  // clean axis steps, about 4 to 6 of them
+    const step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => max / s <= 6) || 2000;
+    const out = []; for (let v = 0; v < max + step; v += step) out.push(v);
+    return out;
+  }
+  function fvRow(rowsEl, labelNode, track, valueText) {
+    const lab = el('div', 'fv-lab'); lab.appendChild(labelNode); rowsEl.appendChild(lab);
+    rowsEl.appendChild(track); rowsEl.appendChild(el('div', 'fv-val', valueText));
+  }
+  function renderFunnelViz(applied) {
+    const host = $('funnelViz'); if (!host) return;
+    host.replaceChildren(); fvTip.hidden = true;
+    const n = applied.length;
+    if (!n) { host.appendChild(el('div', 'note', loaded ? 'Charts appear once applications are logged.' : 'Loading…')); return; }
+    const rk = (r) => respKey(r.d);
+    // 1. the funnel: one hue, each bar a share of all applications
+    const steps = [
+      ['Applied', n],
+      ['Heard back (any email or portal change)', applied.filter((r) => rk(r) !== 'none').length],
+      ['Past the confirmation (under review or further)', applied.filter((r) => ['review', 'screen', 'interview', 'offer'].includes(rk(r))).length],
+      ['Contact (recruiter screen, interview, offer)', applied.filter((r) => CONTACT[rk(r)]).length],
+      ['Interview', applied.filter((r) => rk(r) === 'interview' || rk(r) === 'offer').length],
+      ['Offer', applied.filter((r) => rk(r) === 'offer').length],
+    ];
+    const f = el('div', 'fv-block'); f.appendChild(el('h3', null, 'The funnel'));
+    f.appendChild(el('p', 'fv-sub', 'How far your ' + n + ' applications got. Each bar is a share of all of them.'));
+    const fr = el('div', 'fv-rows');
+    steps.forEach(([label, v]) => {
+      const track = el('div', 'fv-track');
+      if (v) {
+        const bar = el('div', 'fv-bar'); bar.style.width = 'max(3px, ' + ((v / n) * 100).toFixed(2) + '%)';
+        fvHover(bar, label + ': ' + v + ' of ' + n + ' applications (' + fvPct(v, n) + ')'); track.appendChild(bar);
+      }
+      fvRow(fr, document.createTextNode(label), track, v + ' · ' + fvPct(v, n));
+    });
+    f.appendChild(fr); host.appendChild(f);
+    // 2. outcomes by role family: one outcome per application, so the pieces add up to the bar
+    const fam = {};
+    applied.forEach((r) => {
+      const k = trackKey(r.d), b = fam[k] || (fam[k] = { n: 0, contact: 0, review: 0, waiting: 0, stale: 0, rejected: 0 });
+      const key = rk(r), days = daysSince(r.d.appliedOn); b.n++;
+      b[CONTACT[key] ? 'contact' : key === 'rejected' ? 'rejected' : key === 'review' ? 'review' : days != null && days > 21 ? 'stale' : 'waiting']++;
+    });
+    const keys = Object.keys(fam).sort((a, b) => fam[b].n - fam[a].n);
+    const ticks = fvTicks(Math.max(1, ...keys.map((k) => fam[k].n))), top = ticks[ticks.length - 1];
+    const s = el('div', 'fv-block'); s.appendChild(el('h3', null, 'Outcomes by role family'));
+    s.appendChild(el('p', 'fv-sub', 'Bar length is the applications sent, split from the best outcome to the worst; the contact rate follows each bar.'));
+    const lg = el('div', 'fv-legend'); lg.setAttribute('aria-label', 'Legend');
+    FV_OUT.forEach(([k, name]) => { const it = el('span', 'fv-key'); it.appendChild(el('i', 'fv-sw fv-' + k)); it.appendChild(document.createTextNode(name)); lg.appendChild(it); });
+    s.appendChild(lg);
+    const sr = el('div', 'fv-rows');
+    const grid = (track) => ticks.slice(1).forEach((t) => { const g = el('i', 'fv-grid'); g.style.left = ((t / top) * 100).toFixed(2) + '%'; track.appendChild(g); });
+    keys.forEach((k) => {
+      const b = fam[k], name = TRACKS[k] || k, track = el('div', 'fv-track'); grid(track);
+      const bar = el('div', 'fv-stack'); bar.style.width = ((b.n / top) * 100).toFixed(2) + '%';
+      FV_OUT.forEach(([o, oname]) => {
+        if (!b[o]) return;
+        const seg = el('div', 'fv-seg fv-' + o); seg.style.flex = b[o] + ' 1 0';
+        fvHover(seg, name + ' · ' + oname + ': ' + b[o] + ' of ' + b.n + ' (' + fvPct(b[o], b.n) + ')'); bar.appendChild(seg);
+      });
+      track.appendChild(bar);
+      const lab = el('span'); lab.appendChild(document.createTextNode(name + ' ')); lab.appendChild(el('small', null, String(b.n)));
+      fvRow(sr, lab, track, b.contact + (b.contact === 1 ? ' contact · ' : ' contacts · ') + fvPct(b.contact, b.n));
+    });
+    const axis = el('div', 'fv-track fv-axis');  // the shared scale under the bars
+    ticks.forEach((t) => { const tk = el('span', 'fv-tick', String(t)); tk.style.left = ((t / top) * 100).toFixed(2) + '%'; axis.appendChild(tk); });
+    fvRow(sr, document.createTextNode(''), axis, '');
+    s.appendChild(sr); host.appendChild(s);
+  }
+
   // Funnel by role family and lane
-  const normCo = (s) => str(s).toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9 ]/g, ' ')
+  const normCo =(s) => str(s).toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9 ]/g, ' ')
     .replace(/\b(inc|llc|ltd|co|corp|corporation|company|technologies|technology|systems|group|usa|us)\b/g, ' ').replace(/\s+/g, ' ').trim();
   function renderFunnel(all) {
     const applied = all.filter((r) => r.d.status === 'applied');
@@ -749,6 +893,7 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
       rep.hidden = false;
       rep.textContent = 'Three or more applications at one employer: ' + many.map((k) => names[k] + ' ' + per[k]).join(', ') + '.';
     } else rep.hidden = true;
+    renderFunnelViz(applied);
   }
 
   // ---------- Interviews view (collection "interviews") ----------
@@ -854,6 +999,14 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     }
     return top;
   }
+  // HR or technical round, from the card's `interviewType` ("hr" | "tech", with an optional `interviewTypeWhy`); null if not set
+  const ITYPE = { hr: 'HR', tech: 'Tech' };
+  function itypeEl(d) {
+    const t = str(d && d.interviewType).toLowerCase(); if (!ITYPE[t]) return null;
+    const s = el('span', 'itype ' + t, ITYPE[t]);
+    s.title = (t === 'hr' ? 'HR / recruiter screen' : 'Technical interview') + (d.interviewTypeWhy ? ': ' + str(d.interviewTypeWhy) : '');
+    return s;
+  }
   const BIG_PAY = 100000;  // interviews whose posted pay reaches this (yearly) get a gold star
   const payText = (d) => (d.posting && d.posting.pay) || d.pay || '';
   const isBig = (d) => payTop(payText(d)) >= BIG_PAY;
@@ -874,7 +1027,7 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
   // calendar fits the window. Weeks go onto a second row only when they don't fit across.
   function calendarEl(cards) {
     const COLORS = ['todo', 'ok', 'warn', 'accent'];
-    const evs = [];
+    let evs = [];
     cards.forEach(({ id, d }, i) => {
       const tentative = isTentative(d);
       const slots = Array.isArray(d.slots) && d.slots.length
@@ -885,10 +1038,29 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
         evs.push({ id, d, color: COLORS[i % COLORS.length], ...x, state: x.state === 'confirmed' ? 'confirmed' : 'offered' });
       });
     });
+    // past interviews stay on the calendar, shrunk: their days become narrow, muted columns
+    { const t = Date.now(); evs.forEach((e) => { e.past = e.end.getTime() <= t; }); }
     const box = el('div', 'bcal');
     const legend = el('div', 'blegend');
     legend.appendChild(el('span', 'bkey confirmed', 'Confirmed')); legend.appendChild(el('span', 'bkey offered', 'Times offered, waiting for them to pick'));
     legend.appendChild(el('span', 'bkey big', '★ Pays $' + Math.round(BIG_PAY / 1000) + 'k+'));
+    if (evs.some((e) => itypeEl(e.d))) {  // the HR / Tech key, once a card has an interview type
+      { const k = el('span', 'bkey ikey'); k.appendChild(el('span', 'itype hr', 'HR')); k.appendChild(document.createTextNode('HR / recruiter screen')); legend.appendChild(k); }
+      { const k = el('span', 'bkey ikey'); k.appendChild(el('span', 'itype tech', 'Tech')); k.appendChild(document.createTextNode('Technical interview')); legend.appendChild(k); }
+    }
+    // Past interviews fold into one narrow "Past" column on the left (the default); unfolded, each past day is a
+    // narrow muted column. The choice is kept per browser (localStorage `tracker.calPastOpen`).
+    const pastEvs = evs.filter((e) => e.past).sort((a, b) => a.start - b.start);
+    const canFold = pastEvs.length > 0 && pastEvs.length < evs.length;  // something past and something still to come
+    const fold = canFold && !calPastOpen();
+    if (fold) evs = evs.filter((e) => !e.past);
+    if (canFold) {
+      const b = el('button', 'btn bfold', fold ? '▸ Show ' + pastEvs.length + ' past' : '◂ Fold past');
+      b.type = 'button'; b.title = fold ? 'Show past interviews on the calendar, shrunk' : 'Fold past interviews into one column';
+      b.addEventListener('click', () => calSetPastOpen(fold));
+      legend.appendChild(b);
+    }
+    if (!fold && pastEvs.length) legend.appendChild(el('span', 'bkey pastkey', 'Past interviews, shrunk (hover for details)'));
     legend.appendChild(el('span', 'bnote', 'Your computer’s time zone. Click a block to open its row.'));
     box.appendChild(legend);
     if (!evs.length) { box.appendChild(el('div', 'wempty', 'No times to show yet: the booked cards don’t list a date and time.')); return box; }
@@ -910,6 +1082,9 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
       });
       lanesOf.set(k, lanes.length);
     });
+    // a day whose interviews are all over is compact: a fixed narrow width instead of a share of the room
+    const PASTW = 46, compactW = new Map();
+    byDay.forEach((list, k) => { if (list.every((e) => e.past)) compactW.set(k, PASTW * Math.min(3, lanesOf.get(k))); });
     // only the hours that hold interviews, with half an hour to spare on each side
     const hr = (t) => t.getHours() + t.getMinutes() / 60;
     let h0 = Math.max(0, Math.floor(Math.min(...evs.map((e) => hr(e.start))) - 0.5));
@@ -925,7 +1100,9 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     const TCOL = avail < 760 ? 34 : 46;
     let THIN = 30, THIN_WE = 22;
     const thinTotal = allDays.filter((d) => !has(d)).reduce((sum, d) => sum + (isWe(d) ? THIN_WE : THIN), 0);
-    const room = avail - TCOL - allDays.filter(has).length * 90;  // leave each day with an interview about 90 px or more
+    const isCompact = (d) => compactW.has(d.getTime()), compactTotal = allDays.filter(isCompact).reduce((sum, d) => sum + compactW.get(d.getTime()), 0);
+    const FOLDW = fold ? (avail < 760 ? 64 : 92) : 0;
+    const room = avail - TCOL - FOLDW - compactTotal - allDays.filter((d) => has(d) && !isCompact(d)).length * 90;  // leave each upcoming interview day about 90 px or more
     if (thinTotal > 0 && thinTotal > room) { const f = Math.max(0, room) / thinTotal; THIN = Math.max(4, Math.floor(THIN * f)); THIN_WE = Math.max(3, Math.floor(THIN_WE * f)); }
     const rowsOfWeeks = [weeks];
     // hour height: a first guess here; calFit() then makes the calendar reach the bottom of the window once it's shown
@@ -936,13 +1113,19 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     rowsOfWeeks.forEach((rowWeeks) => {
       const days = rowWeeks.flat();
       const grid = el('div', 'bgrid');
-      grid.style.gridTemplateColumns = TCOL + 'px ' + days.map((d) => { const n = lanesOf.get(d.getTime()); return n ? 'minmax(0, ' + n + 'fr)' : (isWe(d) ? THIN_WE : THIN) + 'px'; }).join(' ');
+      grid.style.gridTemplateColumns = TCOL + 'px ' + (fold ? FOLDW + 'px ' : '') + days.map((d) => { const k = d.getTime(), n = lanesOf.get(k); return compactW.has(k) ? compactW.get(k) + 'px' : n ? 'minmax(0, ' + n + 'fr)' : (isWe(d) ? THIN_WE : THIN) + 'px'; }).join(' ');
       grid.appendChild(el('div', 'bcorner'));
+      if (fold) {
+        const fh = el('button', 'bday thin bfoldhd'); fh.type = 'button'; fh.title = 'Show the past interviews on the calendar';
+        fh.appendChild(el('span', 'bdow', 'Past ▸')); fh.appendChild(el('span', 'bdnum', String(pastEvs.length)));
+        fh.addEventListener('click', () => calSetPastOpen(true));
+        grid.appendChild(fh);
+      }
       days.forEach((day, i) => {
-        const has = lanesOf.has(day.getTime()), isToday = day.getTime() === today.getTime();
-        const hd = el('div', 'bday' + (has ? '' : ' thin') + (isToday ? ' today' : '') + (day.getDay() === 1 ? ' wk' : '') + (day < today ? ' past' : ''));
+        const has = lanesOf.has(day.getTime()), isToday = day.getTime() === today.getTime(), small = !has || compactW.has(day.getTime());
+        const hd = el('div', 'bday' + (small ? ' thin' : '') + (isToday ? ' today' : '') + (day.getDay() === 1 ? ' wk' : '') + (day < today ? ' past' : ''));
         if (i === 0 || day.getDate() === 1) hd.appendChild(el('span', 'bmon', fmtMon(day)));  // the month where a row or a month starts
-        hd.appendChild(el('span', 'bdow', day.toLocaleDateString([], { weekday: has ? 'short' : 'narrow' })));
+        hd.appendChild(el('span', 'bdow', day.toLocaleDateString([], { weekday: small ? 'narrow' : 'short' })));
         hd.appendChild(el('span', 'bdnum', String(day.getDate())));
         hd.title = day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + (has ? '' : ': no interview');
         grid.appendChild(hd);
@@ -950,6 +1133,17 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
       const times = el('div', 'btimes'); times.style.height = at(h1 - h0);
       for (let h = h0; h < h1; h++) { const t = el('div', 'bhour' + (h === h0 ? ' first' : ''), new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: 'numeric' })); t.style.top = at(h - h0); times.appendChild(t); }
       grid.appendChild(times);
+      if (fold) {  // the folded past: one small line per past interview, oldest first; each opens its row
+        const fc = el('div', 'bcol bfoldcol'); fc.style.height = at(h1 - h0);
+        pastEvs.forEach((e) => {
+          const a = el('a', 'bfoldev'); a.href = '#interview-' + e.id;
+          a.appendChild(el('b', null, str(e.d.company)));
+          a.appendChild(el('span', null, e.start.toLocaleDateString([], { month: 'numeric', day: 'numeric' })));
+          a.title = 'Past interview · ' + str(e.d.company) + ' · ' + str(e.d.role) + '\n' + e.start.toLocaleString() + ' – ' + hm(e.end);
+          fc.appendChild(a);
+        });
+        grid.appendChild(fc);
+      }
       days.forEach((day) => {
         const k = day.getTime(), list = byDay.get(k) || [], n = lanesOf.get(k) || 1, isToday = k === today.getTime();
         const col = el('div', 'bcol' + (day.getDay() % 6 === 0 ? ' we' : '') + (isToday ? ' today' : '') + (list.length ? '' : ' thin') + (day.getDay() === 1 ? ' wk' : '') + (day < today ? ' past' : ''));
@@ -957,14 +1151,16 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
         if (isToday && hr(now) > h0 && hr(now) < h1) { const nl = el('div', 'bnow'); nl.style.top = at(hr(now) - h0); col.appendChild(nl); }
         list.forEach((e) => {
           const big = isBig(e.d);
-          const a = el('a', 'bev ' + (big ? 'big' : e.color) + ' ' + e.state); a.href = '#interview-' + e.id;
+          const a = el('a', 'bev ' + (big ? 'big' : e.color) + ' ' + e.state + (e.past ? ' past' : '')); a.href = '#interview-' + e.id;
           a.style.top = at(hr(e.start) - h0, '1px');
           a.style.height = 'max(34px, calc(var(--bh) * ' + ((e.end - e.start) / 3600000).toFixed(4) + ' - 3px))';
           a.style.left = 'calc(' + (100 * e.lane / n) + '% + 3px)'; a.style.width = 'calc(' + (100 / n) + '% - 6px)';
-          a.appendChild(el('b', null, (big ? '★ ' : '') + str(e.d.company)));
-          a.appendChild(el('span', null, hm(e.start) + ' – ' + hm(e.end) + (e.state === 'offered' ? ' · offered' : '')));
-          if (e.d.role) a.appendChild(el('span', 'brole', str(e.d.role)));
-          a.title = str(e.d.company) + ' · ' + str(e.d.role) + '\n' + e.start.toLocaleString() + ' – ' + hm(e.end) + (e.note ? '\n' + str(e.note) : '');
+          { const b = el('b'); const t = itypeEl(e.d); if (t) b.appendChild(t); b.appendChild(document.createTextNode((big ? '★ ' : '') + str(e.d.company))); a.appendChild(b); }
+          if (!e.past) {
+            a.appendChild(el('span', null, hm(e.start) + ' – ' + hm(e.end) + (e.state === 'offered' ? ' · offered' : '')));
+            if (e.d.role) a.appendChild(el('span', 'brole', str(e.d.role)));
+          }
+          a.title = (e.past ? 'Past interview · ' : '') + str(e.d.company) + ' · ' + str(e.d.role) + '\n' + e.start.toLocaleString() + ' – ' + hm(e.end) + (e.note ? '\n' + str(e.note) : '');
           col.appendChild(a);
         });
         grid.appendChild(col);
@@ -987,6 +1183,14 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
   }
   // when the window changes size, the calendar is drawn again for the new width (thin strips, one row), then fitted
   let calCards = null, calTimer = 0;
+  // fold or unfold the past interviews; remembered per browser
+  function calPastOpen() { try { return localStorage.getItem('tracker.calPastOpen') === '1'; } catch (e) { return false; } }
+  function calSetPastOpen(open) {
+    try { localStorage.setItem('tracker.calPastOpen', open ? '1' : '0'); } catch (e) { /* private window: just this view */ }
+    const cs = $('icalendar'), old = cs && cs.querySelector('.bcal');
+    if (old && calCards) cs.replaceChild(calendarEl(calCards), old);
+    calFit();
+  }
   window.addEventListener('resize', () => {
     clearTimeout(calTimer);
     calTimer = setTimeout(() => {
@@ -1412,7 +1616,7 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     },
     wh: (c, x) => {
       const d = x.d, L = x.L, booked = x.stage !== 'invited';
-      c.appendChild(el('b', 'xwhen', booked ? interviewWhen(d) : 'Not booked yet'));
+      { const w = el('b', 'xwhen'); const t = itypeEl(d); if (t) w.appendChild(t); w.appendChild(document.createTextNode(booked ? interviewWhen(d) : 'Not booked yet')); c.appendChild(w); }
       const ms = booked ? xWhenMs(d) : null;
       if (ms) {
         const line = el('div', 'xchips'); line.appendChild(el('span', 'xchip' + (ms < Date.now() ? ' past' : ''), untilText(ms)));
@@ -1561,12 +1765,15 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     // One spreadsheet for all interviews: a header row of every field and section, one numbered row per job, grouped
     // by stage (the Jump to chips scroll to the group rows). Long cells show their first lines; "more" opens them.
     thost.appendChild(sheetEl(staged));  // the table has its own page (Interview table); the Interviews page keeps the calendar
-    const booked = staged.filter((r) => r.stage === 'booked');
+    // booked cards, plus any later-stage card (done, rejected, offer) whose interview time is known: past ones stay, shrunk
+    const booked = staged.filter((r) => r.stage === 'booked' || (r.stage !== 'invited' && firstSlot(r.d) < 8.64e15));
     if (!booked.length) host.appendChild(el('div', 'note', 'No booked interviews right now. When you book one, it shows on this calendar.'));
     if (booked.length) {
       const cs = el('section', 'istage calsec'); cs.id = 'icalendar';
       const head = el('div', 'ghead'); const h2 = el('h2'); h2.appendChild(el('span', 'dot interview')); h2.appendChild(document.createTextNode('Interview calendar'));
-      head.appendChild(h2); head.appendChild(el('span', 'count', booked.length + (booked.length === 1 ? ' interview' : ' interviews'))); cs.appendChild(head);
+      const lastEnd = (d) => Math.max(...(Array.isArray(d.slots) && d.slots.length ? d.slots.map((x) => new Date((x && (x.end || x.start))).getTime()) : parseSlots(d.bookedFor).map((x) => x.end.getTime())).filter((x) => !isNaN(x)), 0);
+      const nUp = booked.filter((r) => lastEnd(r.d) > Date.now()).length, nPast = booked.length - nUp;
+      head.appendChild(h2); head.appendChild(el('span', 'count', nUp + ' upcoming' + (nPast ? ' · ' + nPast + ' past' : ''))); cs.appendChild(head);
       calCards = booked; cs.appendChild(calendarEl(booked));
       host.appendChild(cs);
       calFit();
@@ -1691,7 +1898,12 @@ div.note { border: 0; border-radius: 0; }  /* boxes only: td.note cells keep the
     if (!c || !c.db) { clearTimeout(timer); setState('Start the tracker server to see your applications: run  python tracker.py start  then open http://localhost:8787.', true); return; }
     db = c.db;
     if (typeof c.info === 'function') {
-      c.info().then((i) => { const u = i && Array.isArray(i.lan) && i.lan[0]; if (u) { $('where-url').textContent = u.replace(/^https?:\/\//, ''); $('where').hidden = false; } }).catch(() => {});
+      // with --lan: the computer's name (name.local keeps working when the router hands out a new address), and today's address
+      c.info().then((i) => {
+        const bare = (u) => str(u).replace(/^https?:\/\//, ''), n = i && i.name, u = i && Array.isArray(i.lan) && i.lan[0];
+        if (!n && !u) return;
+        $('where-url').textContent = n ? bare(n) + (u ? ' (or ' + bare(u) + ')' : '') : bare(u); $('where').hidden = false;
+      }).catch(() => {});
     }
     $('addForm').hidden = !canWrite;
     db.collection('jobs').onSnapshot((snap) => {

@@ -7,6 +7,20 @@ Versions follow [semantic versioning](https://semver.org): MAJOR.MINOR.PATCH.
 
 (Changes waiting for the next release go here.)
 
+## [1.2.0] - 2026-11-25
+
+### Added
+
+- Job Tracker, **Funnel** tab: two charts under the tables. "The funnel" shows how far your applications got (heard back, past the confirmation, contact, interview, offer); "Outcomes by role family" splits each family's applications from the best outcome to the worst, with the contact rate. Hover or focus a bar for its numbers. Colors work in light and dark mode and for color-blind readers.
+- Job Tracker, **Interview calendar**: past interviews stay on the calendar. By default they fold into one narrow "Past" column on the left; "Show past" puts them back on their days, shrunk and muted. The choice is remembered per browser. The calendar also includes interviewed, rejected and offer cards whose interview time is known, and its heading counts upcoming and past interviews.
+- Job Tracker: interview cards can set `interviewType` (`hr` or `tech`, with an optional `interviewTypeWhy`) to show an **HR** or **Tech** tag on the calendar and in the interview table.
+- `tracker.py`: with `--lan`, the page and `status` also show the computer's `<name>.local` address, which keeps working when the router hands out a new IP address.
+
+### Changed
+
+- `tracker.py serve` listens right away. While the data file can't be read yet (`--wait`, for example a synced folder just after sign-in), the page shows a "starting…" message that opens the tracker by itself, instead of the browser's "can't connect". `status` reports "starting" in that state.
+- `SKILL.md` fit check: an ITAR/EAR "U.S. person" requirement admits U.S. permanent residents, so it no longer counts as a citizenship requirement on its own.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added
@@ -47,7 +61,8 @@ First public release.
 - `templates/JD.md` for optional saved posting notes.
 - README with an example screenshot (demo data).
 
-[Unreleased]: https://github.com/antece1/auto-job-apply/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/antece1/auto-job-apply/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/antece1/auto-job-apply/releases/tag/v1.2.0
 [1.1.0]: https://github.com/antece1/auto-job-apply/releases/tag/v1.1.0
 [1.0.1]: https://github.com/antece1/auto-job-apply/releases/tag/v1.0.1
 [1.0.0]: https://github.com/antece1/auto-job-apply/releases/tag/v1.0.0

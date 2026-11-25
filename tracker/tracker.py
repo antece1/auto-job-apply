@@ -31,6 +31,8 @@ Job row fields: company, role, url, location, pay, status (todo | applied | erro
 resume, notes, issue, source (log | manual), priority (1 = top), track (role family: engineering, software, test,
 manufacturing, research, operations, customer, other; the list is TRACKS in tracker.html), lane (fresh | standard),
 response (none | received | review | screen | interview | offer | rejected), responseOn, responseNote.
+Interview cards can also set interviewType (hr | tech, with an optional interviewTypeWhy): an HR or Tech tag on the
+calendar and in the interview table.
 """
 
 import argparse
@@ -48,6 +50,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
@@ -429,10 +432,15 @@ def local_ipv4s():
 _hosts = {'at': 0.0, 'names': set()}
 
 
+def local_name():
+    """This computer's network name, which other devices on the network can usually open as <name>.local."""
+    return socket.gethostname().lower().split('.')[0] + '.local'
+
+
 def allowed_hosts(refresh=False):
     if refresh or not _hosts['names'] or time.monotonic() - _hosts['at'] > 300:
         hn = socket.gethostname().lower()
-        names = {'localhost', '127.0.0.1', '::1', hn, hn + '.local', hn + '.lan', hn + '.home', hn + '.localdomain'}
+        names = {'localhost', '127.0.0.1', '::1', hn, hn + '.local', hn + '.lan', hn + '.home', hn + '.localdomain', local_name()}
         names.update(local_ipv4s())
         _hosts['names'], _hosts['at'] = names, time.monotonic()
     return _hosts['names']
@@ -452,18 +460,31 @@ def is_lan_bind(bind):
 
 
 def server_info(port, bind='127.0.0.1'):
+    name = None
     if not is_lan_bind(bind):
         lan = []
     elif bind in ('0.0.0.0', '::', ''):
         lan = [f'http://{ip}:{port}' for ip in local_ipv4s()]
+        # stays the same when the router gives this computer a new address
+        name = f'http://{local_name()}:{port}'
     else:
         lan = [f'http://{bind}:{port}']
-    return {'port': port, 'local': f'http://localhost:{port}', 'lan': lan, 'bind': bind}
+    return {'port': port, 'local': f'http://localhost:{port}', 'lan': lan, 'name': name, 'bind': bind}
 
 
 def page_html():
     with open(PAGE_FILE, 'r', encoding='utf-8-sig') as f:
         return f.read()
+
+
+READY = threading.Event()  # set once the data file can be read; until then the page says "starting"
+STARTING_HTML = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="2">'
+                 '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Job Tracker</title>'
+                 '<style>body{font:16px system-ui,sans-serif;margin:0;display:grid;place-items:center;min-height:100vh;'
+                 'background:#F3F5F6;color:#17202A}@media(prefers-color-scheme:dark){body{background:#0E1317;color:#E5EAEE}}'
+                 'p{margin:6px 0}small{opacity:.7}</style></head><body><div><p><b>The job tracker is starting…</b></p>'
+                 '<p><small>Waiting for its data file to be readable (a synced folder can take a minute after sign-in). '
+                 'This page opens by itself in a moment.</small></p></div></body></html>')
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -571,6 +592,15 @@ class Handler(BaseHTTPRequestHandler):
         parts = urlsplit(self.path)
         path = parts.path
         read = method in ('GET', 'HEAD')
+        if not READY.is_set() and path != '/api/info' and not path.startswith('/api/admin/'):
+            # Just after sign-in a synced folder may not serve the data file yet: answer with a page that reloads itself
+            # (instead of the browser's "can't connect"), and tell API callers to try again.
+            if read and path in ('/', '/index.html', '/tracker.html'):
+                return self._send(200, STARTING_HTML, 'text/html; charset=utf-8')
+            if read and path == '/favicon.ico':
+                return self._send(204)
+            return self._send(503, {'error': 'The tracker is starting (waiting for its data file). Try again in a moment.',
+                                    'code': 'unavailable'})
         if read and path in ('/', '/index.html', '/tracker.html'):
             return self._send(200, page_html(), 'text/html; charset=utf-8')
         if read and path == '/tracker-local-db.js':
@@ -650,12 +680,16 @@ def _http(method, path, port, body=None, timeout=2.0):
 def running(port):
     try:
         return _http('GET', '/api/rev', port, timeout=1.5)
+    except urllib.error.HTTPError as e:
+        return {'starting': True} if e.code == 503 else None  # listening, still waiting for the data file
     except Exception:
         return None
 
 
 def print_urls(info):
     out(f'On this computer: {info["local"]}')
+    if info.get('name'):
+        out(f'On other devices on this network: {info["name"]}  (keeps working when the router hands out a new address)')
     for u in info.get('lan') or []:
         out(f'On other devices on this network: {u}')
     if is_lan_bind(info.get('bind', '127.0.0.1')):
@@ -669,22 +703,8 @@ def bind_of(args):
 
 
 def cmd_serve(args):
-    deadline = time.monotonic() + max(0, args.wait)
-    while True:
-        try:
-            STORE.ensure()
-            STORE.snapshot()  # stop now if the data file is damaged
-            break
-        except TrackerError as e:
-            log(f'not starting: {e}')
-            raise
-        except OSError as e:  # right after sign-in, a synced folder may not be available yet
-            if time.monotonic() >= deadline:
-                msg = f'Could not read {DATA_FILE} ({e}).'
-                log(msg)
-                eprint(msg)
-                return 1
-            time.sleep(2)
+    # Listen first, so a browser that opens the page right after sign-in gets a "starting" page that reloads itself
+    # (not "can't connect"); then wait for the data file, which a synced folder may not be serving yet.
     bind = bind_of(args)
     try:
         httpd = Server((bind, args.port), Handler)
@@ -693,11 +713,37 @@ def cmd_serve(args):
         log(msg)
         eprint(msg)
         return 1
-    info = server_info(args.port, bind)
-    log(f'serving {DATA_FILE} on {bind}:{args.port}')
-    out('Job tracker running.')
-    print_urls(info)
-    out('Press Ctrl+C to stop.')
+    result = {'code': 0}
+
+    def wait_for_data():
+        deadline = time.monotonic() + max(0, args.wait)
+        while True:
+            try:
+                STORE.ensure()
+                STORE.snapshot()  # stop now if the data file is damaged
+                break
+            except TrackerError as e:
+                log(f'not starting: {e}')
+                eprint(f'Not starting: {e}')
+                result['code'] = 1
+                httpd.shutdown()
+                return
+            except OSError as e:  # right after sign-in, a synced folder may not be available yet
+                if time.monotonic() >= deadline:
+                    msg = f'Could not read {DATA_FILE} ({e}).'
+                    log(msg)
+                    eprint(msg)
+                    result['code'] = 1
+                    httpd.shutdown()
+                    return
+                time.sleep(2)
+        READY.set()
+        log(f'serving {DATA_FILE} on {bind}:{args.port}')
+        out('Job tracker running.')
+        print_urls(server_info(args.port, bind))
+        out('Press Ctrl+C to stop.')
+
+    threading.Thread(target=wait_for_data, name='wait-for-data', daemon=True).start()
     try:
         httpd.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
@@ -705,7 +751,7 @@ def cmd_serve(args):
     finally:
         httpd.server_close()
         log('server stopped')
-    return 0
+    return result['code']
 
 
 def cmd_start(args):
@@ -772,7 +818,10 @@ def cmd_status(args):
     if r is None:
         out('The job tracker is not running. Start it with: python tracker.py start')
         return 1
-    out(f'The job tracker is running (data revision {r.get("rev")}).')
+    if r.get('starting'):
+        out('The job tracker is starting: it is waiting for its data file to be readable.')
+    else:
+        out(f'The job tracker is running (data revision {r.get("rev")}).')
     try:
         print_urls(_http('GET', '/api/info', args.port))
     except Exception:

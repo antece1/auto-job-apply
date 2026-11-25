@@ -38,6 +38,10 @@ For each job link:
 
 A small web page that runs on your own computer and shows every job in one place: to apply, applied, error and skipped, the responses you got after applying, a funnel by role family, and your interviews (to-do list, calendar and table). The agent adds and updates rows after each application; you can edit them on the page too.
 
+- **Funnel** tab: tables by role family and lane, plus two charts: how far your applications got (heard back, under review, contact, interview, offer) and the outcomes in each role family. Hover any bar for its numbers.
+- **Interview calendar**: upcoming interviews fill the screen; past ones fold into a narrow "Past" column (click to show them, shrunk, on their days).
+- An interview card can carry `interviewType` (`hr` or `tech`) to show an **HR** or **Tech** tag on the calendar and in the interview table.
+
 ![Job Tracker with demo data: jobs grouped into to apply, applied, error and skipped](docs/tracker.png)
 
 It needs only Python 3, with no extra packages. Start it:
@@ -60,7 +64,8 @@ python tracker/tracker.py start --open
 | `python tracker/tracker.py delete ID` | Deletes a row |
 
 - Your rows are saved in `tracker/tracker-data.json` (with daily copies in `tracker/backups/`). Both are in `.gitignore`.
-- By default only your computer can open the page. `start --lan` lets a phone on the same Wi-Fi open it too, but then anyone on that network can edit it.
+- By default only your computer can open the page. `start --lan` lets a phone on the same Wi-Fi open it too, but then anyone on that network can edit it. The page and `status` then show your computer's `<name>.local` address, which keeps working when the router hands out a new IP address.
+- If the data folder isn't readable yet (for example a synced folder right after sign-in), `serve --wait SECONDS` keeps the server up and shows a "starting…" page that opens the tracker by itself once the data is there.
 - Role families (`engineering`, `software`, `test`, `manufacturing`, `research`, `operations`, `customer`, `other`) are one list, `TRACKS`, near the top of the script in `tracker/tracker.html`. Edit it to fit your field.
 
 ## Safety
